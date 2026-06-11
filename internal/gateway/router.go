@@ -18,6 +18,7 @@ package gateway
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -86,6 +87,10 @@ type EventRouter struct {
 	// defaultPolicyID is the identifier of the active guardrail /
 	// admission policy. Populated at bootstrap via SetDefaultPolicyID.
 	defaultPolicyID string
+
+	// toolLoopTracker detects repeated consecutive tool calls per session.
+	toolLoopMu      sync.Mutex
+	toolLoopTracker map[string]*toolLoopState // sessionKey → state
 }
 
 // NewEventRouter creates a router that handles gateway events for the sidecar.
@@ -102,11 +107,79 @@ func NewEventRouter(client *Client, store *audit.Store, logger *audit.Logger, au
 		activeSessions:   make(map[string]time.Time),
 		judgeSem:         make(chan struct{}, 16),
 		contextTracker:   NewContextTracker(0, 0),
+		toolLoopTracker:  make(map[string]*toolLoopState),
 	}
 }
 
 func (r *EventRouter) SetHILTApprovalManager(m *HILTApprovalManager) {
 	r.hilt = m
+}
+
+// toolLoopState tracks consecutive identical tool calls for loop detection.
+type toolLoopState struct {
+	lastTool  string
+	lastHash  string
+	count     int
+	updatedAt time.Time
+}
+
+// toolLoopThreshold is the number of consecutive identical tool calls
+// before a loop is flagged.
+const toolLoopThreshold = 3
+
+// checkToolLoop detects repeated consecutive tool calls with the same
+// arguments. Returns true and the repeat count when a loop is detected.
+func (r *EventRouter) checkToolLoop(sessionKey, toolName string, args []byte) (bool, int) {
+	if sessionKey == "" {
+		return false, 0
+	}
+
+	h := fmt.Sprintf("%x", sha256.Sum256(args))
+
+	r.toolLoopMu.Lock()
+	defer r.toolLoopMu.Unlock()
+
+	st := r.toolLoopTracker[sessionKey]
+	if st == nil {
+		r.toolLoopTracker[sessionKey] = &toolLoopState{
+			lastTool: toolName, lastHash: h, count: 1, updatedAt: time.Now(),
+		}
+		return false, 0
+	}
+
+	if st.lastTool == toolName && st.lastHash == h {
+		st.count++
+		st.updatedAt = time.Now()
+		if st.count >= toolLoopThreshold {
+			return true, st.count
+		}
+		return false, 0
+	}
+
+	st.lastTool = toolName
+	st.lastHash = h
+	st.count = 1
+	st.updatedAt = time.Now()
+	return false, 0
+}
+
+// isMemoryTool returns true for tool names that represent memory operations.
+func isMemoryTool(toolName string) bool {
+	lower := strings.ToLower(toolName)
+	return strings.HasPrefix(lower, "memory_") ||
+		strings.HasPrefix(lower, "mcp__memory") ||
+		lower == "read_memory" || lower == "write_memory" ||
+		lower == "search_memory" || lower == "store_memory"
+}
+
+// isMemoryWrite returns true for tool names that represent memory write operations.
+func isMemoryWrite(toolName string) bool {
+	lower := strings.ToLower(toolName)
+	return strings.Contains(lower, "write") ||
+		strings.Contains(lower, "store") ||
+		strings.Contains(lower, "save") ||
+		strings.Contains(lower, "create") ||
+		strings.Contains(lower, "update")
 }
 
 func (r *EventRouter) SetGuardrailConfig(cfg *config.GuardrailConfig) {
@@ -1169,6 +1242,30 @@ func (r *EventRouter) handleToolCall(evt EventFrame) {
 	meta.ToolID = payload.ID
 	meta.ToolName = payload.Tool
 	emitToolInvocationEvent(context.Background(), meta, "call", payload.Tool, stringFromJSONRaw(payload.Args), "", nil)
+
+	// Tool loop detection: emit when the same tool+args repeats consecutively.
+	if looped, count := r.checkToolLoop(payload.SessionID, payload.Tool, payload.Args); looped {
+		severity := "LOW"
+		if count >= toolLoopThreshold*2 {
+			severity = "HIGH"
+		} else if count >= toolLoopThreshold+1 {
+			severity = "MEDIUM"
+		}
+		if r.otel != nil && r.otel.InsightClaw() != nil {
+			r.otel.InsightClaw().EmitToolLoop(context.Background(), payload.Tool, "consecutive_args", "alert", severity)
+		}
+	}
+
+	// Phase 4: Memory tool detection — emit read/write metrics for memory_* tools.
+	if r.otel != nil && r.otel.InsightClaw() != nil && r.otel.InsightClaw().Experimental() {
+		if isMemoryTool(payload.Tool) {
+			if isMemoryWrite(payload.Tool) {
+				r.otel.InsightClaw().EmitMemoryWrite(context.Background(), payload.Tool, payload.SessionID)
+			} else {
+				r.otel.InsightClaw().EmitMemoryRead(context.Background(), payload.Tool, payload.SessionID)
+			}
+		}
+	}
 
 	// Static block list — checked before any pattern scanning.
 	if r.policy != nil {

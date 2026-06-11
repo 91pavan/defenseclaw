@@ -321,6 +321,10 @@ func (j *JudgeStore) run() {
 		case job := <-j.queue:
 			batch = append(batch, job)
 			telemetry.RecordJudgePersistQueueDepth(job.ctx, int64(len(j.queue)))
+			// Emit queue wait time for InsightClaw.
+			if waitMs := float64(time.Since(job.enqueuedAt).Milliseconds()); waitMs > 0 {
+				telemetry.EmitInsightClawQueueWait(job.ctx, "judge_persist", waitMs)
+			}
 			if len(batch) == 1 {
 				armTimer()
 			}

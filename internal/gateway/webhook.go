@@ -399,6 +399,11 @@ func (d *WebhookDispatcher) send(ep *webhookEndpoint, event audit.Event) bool {
 	var lastStatus int
 
 	for attempt := 0; attempt <= webhookMaxRetries; attempt++ {
+		// Emit run attempt for InsightClaw (1-based).
+		if d.otel != nil && d.otel.InsightClaw() != nil {
+			d.otel.InsightClaw().EmitRunAttempt(context.Background(), attempt+1)
+		}
+
 		if attempt > 0 {
 			backoff := d.retryBackoff * time.Duration(attempt)
 			time.Sleep(backoff)

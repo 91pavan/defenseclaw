@@ -51,6 +51,16 @@ func RecordJudgePersistBatchSize(ctx context.Context, n int64) {
 	}
 }
 
+// EmitInsightClawQueueWait emits queue wait time via the InsightClaw adapter
+// on the global Provider when enabled.
+func EmitInsightClawQueueWait(ctx context.Context, lane string, waitMs float64) {
+	if p := globalTelemetry.Load(); p != nil {
+		if ic := p.InsightClaw(); ic != nil {
+			ic.EmitQueueWait(ctx, lane, waitMs)
+		}
+	}
+}
+
 // RecoverPanic executes fn; if fn panics, it records metrics + EventError and re-panics is false (swallowed).
 // Pass subsystem for the panic counter label (e.g. SubsystemTelemetry).
 func RecoverPanic(ctx context.Context, p *Provider, subsystem gatewaylog.Subsystem, fn func()) {

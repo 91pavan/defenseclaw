@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://defenseclaw.dev/schemas/otel/insightclaw-metrics.schema.json",
   "title": "InsightClaw Compatibility Metrics (openclaw.*)",
-  "description": "Metrics emitted by the DefenseClaw InsightClaw adapter for interoperability with InsightClaw dashboards and analytics. These are dual-emitted alongside native defenseclaw.* metrics when otel.insight_claw.enabled is true. Attribute names follow OTel semantic conventions (gen_ai.*, etc.) — no renaming.",
+  "description": "Metrics emitted by the DefenseClaw InsightClaw adapter for interoperability with InsightClaw dashboards and analytics. These are dual-emitted alongside native defenseclaw.* metrics when otel.insight_claw.enabled is true. Attribute names follow OTel semantic conventions (gen_ai.*, etc.) \u2014 no renaming.",
   "x-emitted-metrics": [
     {
       "name": "openclaw.messages.received",
@@ -10,7 +10,10 @@
       "unit": "{message}",
       "description": "Messages received by the agent (prompt/tool_result hooks).",
       "attributes": {
-        "message.channel": { "type": "string", "description": "Connector or channel that delivered the message." }
+        "message.channel": {
+          "type": "string",
+          "description": "Connector or channel that delivered the message."
+        }
       }
     },
     {
@@ -19,7 +22,10 @@
       "unit": "{message}",
       "description": "Messages sent by the agent (completions/tool_call hooks).",
       "attributes": {
-        "message.channel": { "type": "string", "description": "Connector or channel the message was sent through." }
+        "message.channel": {
+          "type": "string",
+          "description": "Connector or channel the message was sent through."
+        }
       }
     },
     {
@@ -28,8 +34,14 @@
       "unit": "{call}",
       "description": "Tool calls observed via connector hooks.",
       "attributes": {
-        "gen_ai.tool.name": { "type": "string", "description": "Tool name (OTel semconv)." },
-        "session.key": { "type": "string", "description": "Session key when available." }
+        "gen_ai.tool.name": {
+          "type": "string",
+          "description": "Tool name (OTel semconv)."
+        },
+        "session.key": {
+          "type": "string",
+          "description": "Session key when available."
+        }
       }
     },
     {
@@ -38,7 +50,10 @@
       "unit": "{error}",
       "description": "Tool calls that resulted in an error.",
       "attributes": {
-        "gen_ai.tool.name": { "type": "string", "description": "Tool name (OTel semconv)." }
+        "gen_ai.tool.name": {
+          "type": "string",
+          "description": "Tool name (OTel semconv)."
+        }
       }
     },
     {
@@ -47,7 +62,10 @@
       "unit": "{reset}",
       "description": "Session resets (new/reset commands).",
       "attributes": {
-        "command.source": { "type": "string", "description": "Source of the reset command." }
+        "command.source": {
+          "type": "string",
+          "description": "Source of the reset command."
+        }
       }
     },
     {
@@ -56,9 +74,18 @@
       "unit": "{request}",
       "description": "LLM requests observed.",
       "attributes": {
-        "gen_ai.request.model": { "type": "string", "description": "Model identifier (OTel semconv)." },
-        "gen_ai.provider.name": { "type": "string", "description": "Provider name (OTel semconv)." },
-        "connector": { "type": "string", "description": "Connector that triggered the request." }
+        "gen_ai.request.model": {
+          "type": "string",
+          "description": "Model identifier (OTel semconv)."
+        },
+        "gen_ai.provider.name": {
+          "type": "string",
+          "description": "Provider name (OTel semconv)."
+        },
+        "connector": {
+          "type": "string",
+          "description": "Connector that triggered the request."
+        }
       }
     },
     {
@@ -67,8 +94,12 @@
       "unit": "{token}",
       "description": "Prompt (input) tokens consumed.",
       "attributes": {
-        "gen_ai.request.model": { "type": "string" },
-        "connector": { "type": "string" }
+        "gen_ai.request.model": {
+          "type": "string"
+        },
+        "connector": {
+          "type": "string"
+        }
       }
     },
     {
@@ -77,8 +108,12 @@
       "unit": "{token}",
       "description": "Completion (output) tokens consumed.",
       "attributes": {
-        "gen_ai.request.model": { "type": "string" },
-        "connector": { "type": "string" }
+        "gen_ai.request.model": {
+          "type": "string"
+        },
+        "connector": {
+          "type": "string"
+        }
       }
     },
     {
@@ -87,8 +122,12 @@
       "unit": "{token}",
       "description": "Total tokens consumed.",
       "attributes": {
-        "gen_ai.request.model": { "type": "string" },
-        "connector": { "type": "string" }
+        "gen_ai.request.model": {
+          "type": "string"
+        },
+        "connector": {
+          "type": "string"
+        }
       }
     },
     {
@@ -97,8 +136,13 @@
       "unit": "ms",
       "description": "Agent turn duration.",
       "attributes": {
-        "gen_ai.request.model": { "type": "string" },
-        "gen_ai.agent.id": { "type": "string", "description": "Agent identifier." }
+        "gen_ai.request.model": {
+          "type": "string"
+        },
+        "gen_ai.agent.id": {
+          "type": "string",
+          "description": "Agent identifier."
+        }
       }
     },
     {
@@ -107,7 +151,9 @@
       "unit": "ms",
       "description": "LLM request duration (model round-trip, not full turn).",
       "attributes": {
-        "gen_ai.request.model": { "type": "string" }
+        "gen_ai.request.model": {
+          "type": "string"
+        }
       }
     },
     {
@@ -116,7 +162,9 @@
       "unit": "USD",
       "description": "Accumulated LLM cost in USD.",
       "attributes": {
-        "gen_ai.request.model": { "type": "string" }
+        "gen_ai.request.model": {
+          "type": "string"
+        }
       }
     },
     {
@@ -125,8 +173,12 @@
       "unit": "{webhook}",
       "description": "Webhooks received.",
       "attributes": {
-        "channel": { "type": "string" },
-        "webhook.type": { "type": "string" }
+        "channel": {
+          "type": "string"
+        },
+        "webhook.type": {
+          "type": "string"
+        }
       }
     },
     {
@@ -135,8 +187,12 @@
       "unit": "{error}",
       "description": "Webhook processing errors.",
       "attributes": {
-        "channel": { "type": "string" },
-        "webhook.type": { "type": "string" }
+        "channel": {
+          "type": "string"
+        },
+        "webhook.type": {
+          "type": "string"
+        }
       }
     },
     {
@@ -145,7 +201,9 @@
       "unit": "ms",
       "description": "Webhook ingress processing duration.",
       "attributes": {
-        "channel": { "type": "string" }
+        "channel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -154,8 +212,12 @@
       "unit": "{message}",
       "description": "Messages enqueued for processing.",
       "attributes": {
-        "channel": { "type": "string" },
-        "source": { "type": "string" }
+        "channel": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
       }
     },
     {
@@ -164,8 +226,12 @@
       "unit": "{message}",
       "description": "Messages processed.",
       "attributes": {
-        "channel": { "type": "string" },
-        "outcome": { "type": "string" }
+        "channel": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string"
+        }
       }
     },
     {
@@ -174,7 +240,9 @@
       "unit": "ms",
       "description": "Message processing duration.",
       "attributes": {
-        "channel": { "type": "string" }
+        "channel": {
+          "type": "string"
+        }
       }
     },
     {
@@ -190,7 +258,9 @@
       "unit": "ms",
       "description": "Time spent waiting in the queue.",
       "attributes": {
-        "lane": { "type": "string" }
+        "lane": {
+          "type": "string"
+        }
       }
     },
     {
@@ -199,7 +269,9 @@
       "unit": "{event}",
       "description": "Queue lane enqueue events.",
       "attributes": {
-        "lane": { "type": "string" }
+        "lane": {
+          "type": "string"
+        }
       }
     },
     {
@@ -208,7 +280,9 @@
       "unit": "{event}",
       "description": "Queue lane dequeue events.",
       "attributes": {
-        "lane": { "type": "string" }
+        "lane": {
+          "type": "string"
+        }
       }
     },
     {
@@ -217,8 +291,12 @@
       "unit": "{transition}",
       "description": "Session state transitions.",
       "attributes": {
-        "state": { "type": "string" },
-        "reason": { "type": "string" }
+        "state": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
       }
     },
     {
@@ -227,7 +305,9 @@
       "unit": "{event}",
       "description": "Sessions detected as stuck.",
       "attributes": {
-        "state": { "type": "string" }
+        "state": {
+          "type": "string"
+        }
       }
     },
     {
@@ -236,7 +316,9 @@
       "unit": "ms",
       "description": "How long sessions have been stuck.",
       "attributes": {
-        "state": { "type": "string" }
+        "state": {
+          "type": "string"
+        }
       }
     },
     {
@@ -245,7 +327,9 @@
       "unit": "{attempt}",
       "description": "Run attempts (including retries).",
       "attributes": {
-        "attempt": { "type": "integer" }
+        "attempt": {
+          "type": "integer"
+        }
       }
     },
     {
@@ -254,11 +338,233 @@
       "unit": "{loop}",
       "description": "Tool loop detections.",
       "attributes": {
-        "gen_ai.tool.name": { "type": "string" },
-        "detector": { "type": "string" },
-        "action": { "type": "string" },
-        "severity": { "type": "string" }
+        "gen_ai.tool.name": {
+          "type": "string"
+        },
+        "detector": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "openclaw.context.limit",
+      "type": "gauge",
+      "unit": "{token}",
+      "description": "Context window token limit for the active model.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.request.model": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "openclaw.context.used",
+      "type": "gauge",
+      "unit": "{token}",
+      "description": "Context window tokens consumed by the current prompt.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.request.model": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "openclaw.context.utilization",
+      "type": "histogram",
+      "unit": "1",
+      "description": "Context window utilization ratio (used/limit).",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.request.model": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "openclaw.memory.read",
+      "type": "counter",
+      "unit": "{operation}",
+      "description": "Memory tool read operations.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.tool.name": {
+          "type": "string"
+        },
+        "session.key": {
+          "type": "string",
+          "description": "Session key when available."
+        }
+      }
+    },
+    {
+      "name": "openclaw.memory.write",
+      "type": "counter",
+      "unit": "{operation}",
+      "description": "Memory tool write operations.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.tool.name": {
+          "type": "string"
+        },
+        "session.key": {
+          "type": "string",
+          "description": "Session key when available."
+        }
+      }
+    },
+    {
+      "name": "openclaw.memory.search_fragmentation",
+      "type": "counter",
+      "unit": "{fragment}",
+      "description": "Memory search result fragmentation count.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.tool.name": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "openclaw.session.parallelisation_score",
+      "type": "histogram",
+      "unit": "1",
+      "description": "Session parallelisation score (0=sequential, 1=fully parallel).",
+      "experimental": true,
+      "attributes": {
+        "session.key": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "openclaw.session.repetition_score",
+      "type": "histogram",
+      "unit": "1",
+      "description": "Session repetition score (0=all unique, 1=all repeated).",
+      "experimental": true,
+      "attributes": {
+        "session.key": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "openclaw.context.system_size",
+      "type": "histogram",
+      "unit": "By",
+      "description": "System prompt size in bytes.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.agent.id": { "type": "string", "description": "Agent identifier." }
+      }
+    },
+    {
+      "name": "openclaw.context.history_tool_size",
+      "type": "histogram",
+      "unit": "By",
+      "description": "Tool result history size in bytes (excluding memory tools).",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.agent.id": { "type": "string", "description": "Agent identifier." }
+      }
+    },
+    {
+      "name": "openclaw.context.history_user_size",
+      "type": "histogram",
+      "unit": "By",
+      "description": "User message history size in bytes.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.agent.id": { "type": "string", "description": "Agent identifier." }
+      }
+    },
+    {
+      "name": "openclaw.context.history_memory_size",
+      "type": "histogram",
+      "unit": "By",
+      "description": "Memory tool content size in bytes.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.agent.id": { "type": "string", "description": "Agent identifier." }
+      }
+    },
+    {
+      "name": "openclaw.context.history_other_size",
+      "type": "histogram",
+      "unit": "By",
+      "description": "Other history content size in bytes (assistant, etc).",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.agent.id": { "type": "string", "description": "Agent identifier." }
+      }
+    },
+    {
+      "name": "openclaw.context.prompt_size",
+      "type": "histogram",
+      "unit": "By",
+      "description": "Current prompt/instruction size in bytes.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.agent.id": { "type": "string", "description": "Agent identifier." }
+      }
+    },
+    {
+      "name": "openclaw.agent.novelty_score",
+      "type": "histogram",
+      "unit": "1",
+      "description": "Novelty score: ratio of new information in sub-agent output vs parent context.",
+      "experimental": true,
+      "attributes": {
+        "gen_ai.agent.id": { "type": "string", "description": "Agent identifier." }
       }
     }
-  ]
+  ],
+  "$defs": {
+    "metricDef": {
+      "type": "object",
+      "required": ["name", "type", "unit", "description", "attributes"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Fully qualified metric name."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["counter", "histogram", "updowncounter", "gauge"],
+          "description": "OTEL instrument type."
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit annotation per OTEL/UCUM conventions."
+        },
+        "description": {
+          "type": "string"
+        },
+        "experimental": {
+          "type": "boolean",
+          "description": "True for metrics gated behind otel.insightclaw.experimental."
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Attribute dimensions for this metric.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "enum": { "type": "array" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
 }

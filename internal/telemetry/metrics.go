@@ -1355,6 +1355,16 @@ func (p *Provider) RecordLLMDuration(ctx context.Context, operationName, provide
 	}
 }
 
+// RecordContextWindow records context window limit and usage for experimental
+// InsightClaw metrics. Only emitted when the adapter is active and experimental
+// mode is enabled.
+func (p *Provider) RecordContextWindow(ctx context.Context, model string, limit, used int64) {
+	if !p.Enabled() || p.insightClaw == nil {
+		return
+	}
+	p.insightClaw.EmitContextWindow(ctx, NormalizeModelLabel(model), limit, used)
+}
+
 // RecordAlert records a runtime alert metric.
 // RecordAlert records a runtime/guardrail alert. connector is the
 // originating connector when known (e.g. derived from a "<connector>:<role>"

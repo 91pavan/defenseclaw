@@ -68,6 +68,27 @@ type Adapter struct {
 	sessionStuckAge  metric.Float64Histogram
 	runAttempt       metric.Int64Counter
 	toolLoop         metric.Int64Counter
+
+	// --- Phase 4: Experimental context & memory metrics ---
+	contextLimit           metric.Int64Gauge
+	contextUsed            metric.Int64Gauge
+	contextUtilization     metric.Float64Histogram
+	memoryRead             metric.Int64Counter
+	memoryWrite            metric.Int64Counter
+	memorySearchFragments  metric.Int64Counter
+	sessionParallelisation metric.Float64Histogram
+	sessionRepetition      metric.Float64Histogram
+
+	// Context composition breakdown (mirrors plugin parseContext)
+	contextSystemSize      metric.Float64Histogram
+	contextHistoryToolSize metric.Float64Histogram
+	contextHistoryUserSize metric.Float64Histogram
+	contextHistoryMemSize  metric.Float64Histogram
+	contextHistoryOther    metric.Float64Histogram
+	contextPromptSize      metric.Float64Histogram
+
+	// Novelty score: measures how much new information a sub-agent produces
+	noveltyScore metric.Float64Histogram
 }
 
 // NewAdapter registers openclaw.* instruments on the given meter. Returns nil
@@ -281,6 +302,116 @@ func NewAdapter(m metric.Meter, cfg Config) (*Adapter, error) {
 		metric.WithDescription("Tool loop detections."))
 	if err != nil {
 		return nil, err
+	}
+
+	// --- Phase 4: Experimental context & memory metrics ---
+	if cfg.Experimental {
+		a.contextLimit, err = m.Int64Gauge(name("context.limit"),
+			metric.WithUnit("{token}"),
+			metric.WithDescription("Context window token limit for the active model."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.contextUsed, err = m.Int64Gauge(name("context.used"),
+			metric.WithUnit("{token}"),
+			metric.WithDescription("Context window tokens consumed by the current prompt."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.contextUtilization, err = m.Float64Histogram(name("context.utilization"),
+			metric.WithUnit("1"),
+			metric.WithDescription("Context window utilization ratio (used/limit)."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.memoryRead, err = m.Int64Counter(name("memory.read"),
+			metric.WithUnit("{operation}"),
+			metric.WithDescription("Memory tool read operations."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.memoryWrite, err = m.Int64Counter(name("memory.write"),
+			metric.WithUnit("{operation}"),
+			metric.WithDescription("Memory tool write operations."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.memorySearchFragments, err = m.Int64Counter(name("memory.search_fragmentation"),
+			metric.WithUnit("{fragment}"),
+			metric.WithDescription("Memory search result fragmentation count."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.sessionParallelisation, err = m.Float64Histogram(name("session.parallelisation_score"),
+			metric.WithUnit("1"),
+			metric.WithDescription("Session parallelisation score (0=sequential, 1=fully parallel)."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.sessionRepetition, err = m.Float64Histogram(name("session.repetition_score"),
+			metric.WithUnit("1"),
+			metric.WithDescription("Session repetition score (0=all unique, 1=all repeated)."))
+		if err != nil {
+			return nil, err
+		}
+
+		// Context composition breakdown
+		a.contextSystemSize, err = m.Float64Histogram(name("context.system_size"),
+			metric.WithUnit("By"),
+			metric.WithDescription("System prompt size in bytes."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.contextHistoryToolSize, err = m.Float64Histogram(name("context.history_tool_size"),
+			metric.WithUnit("By"),
+			metric.WithDescription("Tool result history size in bytes (excluding memory tools)."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.contextHistoryUserSize, err = m.Float64Histogram(name("context.history_user_size"),
+			metric.WithUnit("By"),
+			metric.WithDescription("User message history size in bytes."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.contextHistoryMemSize, err = m.Float64Histogram(name("context.history_memory_size"),
+			metric.WithUnit("By"),
+			metric.WithDescription("Memory tool content size in bytes."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.contextHistoryOther, err = m.Float64Histogram(name("context.history_other_size"),
+			metric.WithUnit("By"),
+			metric.WithDescription("Other history content size in bytes (assistant, etc)."))
+		if err != nil {
+			return nil, err
+		}
+
+		a.contextPromptSize, err = m.Float64Histogram(name("context.prompt_size"),
+			metric.WithUnit("By"),
+			metric.WithDescription("Current prompt/instruction size in bytes."))
+		if err != nil {
+			return nil, err
+		}
+
+		// Novelty score
+		a.noveltyScore, err = m.Float64Histogram(name("agent.novelty_score"),
+			metric.WithUnit("1"),
+			metric.WithDescription("Novelty score: ratio of new information in sub-agent output vs parent context (0=fully redundant, 1=fully novel)."))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return a, nil

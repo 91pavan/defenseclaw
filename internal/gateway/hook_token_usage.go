@@ -29,6 +29,8 @@ type hookTokenUsage struct {
 	PromptTokens     int64
 	CompletionTokens int64
 	TotalTokens      int64
+	ContextLimit     int64 // context window token limit (Phase 4 experimental)
+	ContextUsed      int64 // context window tokens consumed (Phase 4 experimental)
 }
 
 // extractHookPayloadTokenUsage walks an agent-hook payload looking
@@ -131,6 +133,26 @@ func extractHookPayloadTokenUsage(payload map[string]interface{}) hookTokenUsage
 	if out.TotalTokens == 0 && (out.PromptTokens > 0 || out.CompletionTokens > 0) {
 		out.TotalTokens = out.PromptTokens + out.CompletionTokens
 	}
+
+	// Phase 4 experimental: extract context window data when present.
+	for _, src := range candidates {
+		if out.ContextLimit == 0 {
+			out.ContextLimit = firstInt64(src,
+				"context_limit", "contextLimit",
+				"context_window", "contextWindow",
+				"max_context_tokens", "maxContextTokens",
+				"gen_ai.context.limit",
+			)
+		}
+		if out.ContextUsed == 0 {
+			out.ContextUsed = firstInt64(src,
+				"context_used", "contextUsed",
+				"context_tokens_used", "contextTokensUsed",
+				"gen_ai.context.used",
+			)
+		}
+	}
+
 	return out
 }
 

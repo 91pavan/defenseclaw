@@ -310,3 +310,125 @@ func (a *Adapter) EmitToolLoop(ctx context.Context, toolName, detector, action, 
 		attribute.String("severity", severity),
 	))
 }
+
+// --- Phase 4: Experimental context & memory Emit methods ---
+
+// EmitContextWindow records the context window limit and usage for an LLM call.
+// Utilization is computed as used/limit when both are positive.
+func (a *Adapter) EmitContextWindow(ctx context.Context, model string, limit, used int64) {
+	if a == nil || a.contextLimit == nil {
+		return
+	}
+	attrs := metric.WithAttributes(
+		attribute.String("gen_ai.request.model", model),
+	)
+	a.contextLimit.Record(ctx, limit, attrs)
+	a.contextUsed.Record(ctx, used, attrs)
+	if limit > 0 && used > 0 {
+		utilization := float64(used) / float64(limit)
+		a.contextUtilization.Record(ctx, utilization, attrs)
+	}
+}
+
+// EmitMemoryRead records a memory tool read operation.
+func (a *Adapter) EmitMemoryRead(ctx context.Context, toolName, sessionKey string) {
+	if a == nil || a.memoryRead == nil {
+		return
+	}
+	attrs := []attribute.KeyValue{
+		attribute.String("gen_ai.tool.name", toolName),
+	}
+	if sessionKey != "" {
+		attrs = append(attrs, attribute.String("session.key", sessionKey))
+	}
+	a.memoryRead.Add(ctx, 1, metric.WithAttributes(attrs...))
+}
+
+// EmitMemoryWrite records a memory tool write operation.
+func (a *Adapter) EmitMemoryWrite(ctx context.Context, toolName, sessionKey string) {
+	if a == nil || a.memoryWrite == nil {
+		return
+	}
+	attrs := []attribute.KeyValue{
+		attribute.String("gen_ai.tool.name", toolName),
+	}
+	if sessionKey != "" {
+		attrs = append(attrs, attribute.String("session.key", sessionKey))
+	}
+	a.memoryWrite.Add(ctx, 1, metric.WithAttributes(attrs...))
+}
+
+// EmitMemorySearchFragmentation records fragmented memory search results.
+func (a *Adapter) EmitMemorySearchFragmentation(ctx context.Context, toolName string, fragments int64) {
+	if a == nil || a.memorySearchFragments == nil {
+		return
+	}
+	a.memorySearchFragments.Add(ctx, fragments, metric.WithAttributes(
+		attribute.String("gen_ai.tool.name", toolName),
+	))
+}
+
+// EmitSessionParallelisationScore records the parallelisation score for a
+// completed session (0=fully sequential, 1=fully parallel).
+func (a *Adapter) EmitSessionParallelisationScore(ctx context.Context, sessionKey string, score float64) {
+	if a == nil || a.sessionParallelisation == nil {
+		return
+	}
+	a.sessionParallelisation.Record(ctx, score, metric.WithAttributes(
+		attribute.String("session.key", sessionKey),
+	))
+}
+
+// EmitSessionRepetitionScore records the repetition score for a completed
+// session (0=all unique prompts, 1=all repeated).
+func (a *Adapter) EmitSessionRepetitionScore(ctx context.Context, sessionKey string, score float64) {
+	if a == nil || a.sessionRepetition == nil {
+		return
+	}
+	a.sessionRepetition.Record(ctx, score, metric.WithAttributes(
+		attribute.String("session.key", sessionKey),
+	))
+}
+
+// Experimental reports whether Phase 4 experimental metrics are enabled.
+func (a *Adapter) Experimental() bool {
+	return a != nil && a.cfg.Experimental
+}
+
+// ContextComposition holds the breakdown of an LLM input context by category.
+type ContextComposition struct {
+	SystemBytes      float64 // system prompt size
+	HistoryToolBytes float64 // tool result history (excluding memory tools)
+	HistoryUserBytes float64 // user message history
+	HistoryMemBytes  float64 // memory tool content
+	HistoryOther     float64 // other roles (assistant, etc)
+	PromptBytes      float64 // current prompt/instruction
+}
+
+// EmitContextComposition records the breakdown of LLM input context sizes.
+// Mirrors the plugin's parseContext() function.
+func (a *Adapter) EmitContextComposition(ctx context.Context, agentID string, comp ContextComposition) {
+	if a == nil || a.contextSystemSize == nil {
+		return
+	}
+	attrs := metric.WithAttributes(
+		attribute.String("gen_ai.agent.id", agentID),
+	)
+	a.contextSystemSize.Record(ctx, comp.SystemBytes, attrs)
+	a.contextHistoryToolSize.Record(ctx, comp.HistoryToolBytes, attrs)
+	a.contextHistoryUserSize.Record(ctx, comp.HistoryUserBytes, attrs)
+	a.contextHistoryMemSize.Record(ctx, comp.HistoryMemBytes, attrs)
+	a.contextHistoryOther.Record(ctx, comp.HistoryOther, attrs)
+	a.contextPromptSize.Record(ctx, comp.PromptBytes, attrs)
+}
+
+// EmitNoveltyScore records the novelty score for a sub-agent's output relative
+// to its parent's context (0=fully redundant, 1=fully novel).
+func (a *Adapter) EmitNoveltyScore(ctx context.Context, agentID string, score float64) {
+	if a == nil || a.noveltyScore == nil {
+		return
+	}
+	a.noveltyScore.Record(ctx, score, metric.WithAttributes(
+		attribute.String("gen_ai.agent.id", agentID),
+	))
+}
