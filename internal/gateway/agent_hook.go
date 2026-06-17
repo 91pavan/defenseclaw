@@ -36,6 +36,7 @@ import (
 	"github.com/defenseclaw/defenseclaw/internal/gateway/notifier"
 	"github.com/defenseclaw/defenseclaw/internal/gatewaylog"
 	"github.com/defenseclaw/defenseclaw/internal/redaction"
+	"github.com/defenseclaw/defenseclaw/internal/telemetry/insightclaw"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -371,6 +372,10 @@ func (a *APIServer) finalizeAgentHook(
 		if usage.ContextLimit > 0 || usage.ContextUsed > 0 {
 			a.otel.RecordContextWindow(ctx, usage.Model, usage.ContextLimit, usage.ContextUsed)
 		}
+		// Phase 4: experimental context composition, session scores, and novelty.
+		if ic := a.otel.InsightClaw(); ic != nil && ic.Experimental() {
+			a.emitPhase4ExperimentalMetrics(ctx, req, ic)
+		}
 		a.otel.EmitConnectorTelemetryLog(ctx, "hook", connectorName, result, 1, int64(len(rawBody)),
 			fmt.Sprintf("source=hook connector=%s event=%s tool=%s decision=%s raw_action=%s would_block=%v mode=%s duration_ms=%d step_idx=%d enforced=%v rule_pack_dir=%s result=%s",
 				hookLogLabel(connectorName), eventLabel, hookLogLabel(req.ToolName), decisionLabel, rawActionLabel, resp.WouldBlock, hookLogLabel(resp.Mode), elapsed.Milliseconds(), env.StepIdx, env.Enforced, env.RulePackDir, result))
@@ -383,6 +388,234 @@ func (a *APIServer) finalizeAgentHook(
 	safeSection("audit", func() {
 		a.logConnectorHookAuditEnvelope(ctx, env)
 	})
+}
+
+// emitPhase4ExperimentalMetrics emits InsightClaw Phase 4 experimental metrics
+// (context composition, session parallelisation/repetition scores, and novelty)
+// from the hook payload when applicable data is present.
+func (a *APIServer) emitPhase4ExperimentalMetrics(ctx context.Context, req agentHookRequest, ic *insightclaw.Adapter) {
+	// Context composition: extract message sizes by role from the payload.
+	if msgs, ok := req.Payload["messages"].([]interface{}); ok && len(msgs) > 0 {
+		comp := computeContextComposition(req.Payload, msgs)
+		if comp.SystemBytes > 0 || comp.HistoryToolBytes > 0 || comp.HistoryUserBytes > 0 ||
+			comp.HistoryMemBytes > 0 || comp.HistoryOther > 0 || comp.PromptBytes > 0 {
+			agentID := req.AgentID
+			if agentID == "" {
+				agentID = req.AgentName
+			}
+			ic.EmitContextComposition(ctx, agentID, comp)
+		}
+	}
+
+	// Session scores and novelty: only on Stop/SubagentStop events.
+	canon := strings.ToLower(req.HookEventName)
+	isStop := canon == "stop" || canon == "agentstop" || canon == "subagentstop"
+	if !isStop {
+		return
+	}
+
+	sessionKey := req.SessionID
+	if sessionKey == "" {
+		return
+	}
+
+	// Repetition score: ratio of duplicate user messages in the conversation.
+	if msgs, ok := req.Payload["messages"].([]interface{}); ok && len(msgs) > 1 {
+		score := computeRepetitionScore(msgs)
+		if score > 0 {
+			ic.EmitSessionRepetitionScore(ctx, sessionKey, score)
+		}
+	}
+
+	// Parallelisation score: ratio of overlapping tool calls.
+	// Derived from tool_calls in the conversation — if multiple tools ran in
+	// the same turn (indicated by same parent message), score is higher.
+	if toolCalls := extractToolCallCounts(req.Payload); toolCalls > 0 {
+		parallelCalls := extractParallelToolCalls(req.Payload)
+		if toolCalls > 1 {
+			score := float64(parallelCalls) / float64(toolCalls)
+			if score > 1.0 {
+				score = 1.0
+			}
+			ic.EmitSessionParallelisationScore(ctx, sessionKey, score)
+		}
+	}
+
+	// Novelty score: only for SubagentStop — compare sub-agent output to parent context.
+	if canon == "subagentstop" {
+		lastMsg := firstString(req.Payload, "last_assistant_message", "lastAssistantMessage", "output", "result")
+		parentCtx := firstString(req.Payload, "parent_context", "parentContext", "input", "prompt")
+		if lastMsg != "" && parentCtx != "" {
+			score := insightclaw.ComputeNoveltyScore(lastMsg, parentCtx)
+			agentID := req.AgentID
+			if agentID == "" {
+				agentID = req.AgentName
+			}
+			ic.EmitNoveltyScore(ctx, agentID, score)
+		}
+	}
+}
+
+// computeContextComposition categorizes message content by role to produce
+// a breakdown of LLM input context sizes.
+func computeContextComposition(payload map[string]interface{}, msgs []interface{}) insightclaw.ContextComposition {
+	var comp insightclaw.ContextComposition
+
+	// System prompt: may be at top level or in a dedicated field.
+	if sys, ok := payload["system"].(string); ok {
+		comp.SystemBytes = float64(len(sys))
+	} else if sys, ok := payload["system_prompt"].(string); ok {
+		comp.SystemBytes = float64(len(sys))
+	}
+
+	for _, m := range msgs {
+		obj, ok := m.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		content := firstString(obj, "content", "text")
+		size := float64(len(content))
+		if size == 0 {
+			continue
+		}
+		role, _ := obj["role"].(string)
+		switch strings.ToLower(role) {
+		case "system":
+			comp.SystemBytes += size
+		case "user":
+			comp.HistoryUserBytes += size
+		case "tool", "tool_result", "function":
+			// Check if it's a memory tool result
+			toolName, _ := obj["name"].(string)
+			if isMemoryTool(toolName) {
+				comp.HistoryMemBytes += size
+			} else {
+				comp.HistoryToolBytes += size
+			}
+		default:
+			comp.HistoryOther += size
+		}
+	}
+
+	// The last user message is the current prompt, not history.
+	// Walk backwards to find and reclassify it.
+	for i := len(msgs) - 1; i >= 0; i-- {
+		obj, ok := msgs[i].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		role, _ := obj["role"].(string)
+		if strings.ToLower(role) == "user" {
+			content := firstString(obj, "content", "text")
+			size := float64(len(content))
+			if size > 0 {
+				comp.HistoryUserBytes -= size
+				comp.PromptBytes = size
+			}
+			break
+		}
+	}
+
+	return comp
+}
+
+// computeRepetitionScore returns the fraction of user messages that are
+// duplicates (0=all unique, 1=all repeated).
+func computeRepetitionScore(msgs []interface{}) float64 {
+	seen := make(map[string]struct{})
+	userCount := 0
+	repeats := 0
+	for _, m := range msgs {
+		obj, ok := m.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		role, _ := obj["role"].(string)
+		if strings.ToLower(role) != "user" {
+			continue
+		}
+		content := firstString(obj, "content", "text")
+		if content == "" {
+			continue
+		}
+		userCount++
+		if _, dup := seen[content]; dup {
+			repeats++
+		}
+		seen[content] = struct{}{}
+	}
+	if userCount <= 1 {
+		return 0
+	}
+	return float64(repeats) / float64(userCount)
+}
+
+// extractToolCallCounts returns the total number of tool calls observed in
+// the hook payload (from a messages array or tool_calls field).
+func extractToolCallCounts(payload map[string]interface{}) int {
+	count := 0
+	if msgs, ok := payload["messages"].([]interface{}); ok {
+		for _, m := range msgs {
+			obj, ok := m.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			role, _ := obj["role"].(string)
+			if role == "assistant" {
+				// Count tool_use blocks in content
+				if content, ok := obj["content"].([]interface{}); ok {
+					for _, block := range content {
+						if b, ok := block.(map[string]interface{}); ok {
+							if t, _ := b["type"].(string); t == "tool_use" || t == "tool_calls" || t == "function_call" {
+								count++
+							}
+						}
+					}
+				}
+				// Or count tool_calls array
+				if tc, ok := obj["tool_calls"].([]interface{}); ok {
+					count += len(tc)
+				}
+			}
+		}
+	}
+	return count
+}
+
+// extractParallelToolCalls estimates the number of tool calls that ran in
+// parallel. If an assistant message contains multiple tool_use blocks,
+// those are considered parallel (issued in the same turn).
+func extractParallelToolCalls(payload map[string]interface{}) int {
+	parallel := 0
+	if msgs, ok := payload["messages"].([]interface{}); ok {
+		for _, m := range msgs {
+			obj, ok := m.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			role, _ := obj["role"].(string)
+			if role != "assistant" {
+				continue
+			}
+			turnTools := 0
+			if content, ok := obj["content"].([]interface{}); ok {
+				for _, block := range content {
+					if b, ok := block.(map[string]interface{}); ok {
+						if t, _ := b["type"].(string); t == "tool_use" || t == "tool_calls" || t == "function_call" {
+							turnTools++
+						}
+					}
+				}
+			}
+			if tc, ok := obj["tool_calls"].([]interface{}); ok {
+				turnTools += len(tc)
+			}
+			if turnTools > 1 {
+				parallel += turnTools
+			}
+		}
+	}
+	return parallel
 }
 
 // renderAgentHookResponse projects the unified agentHookResponse

@@ -182,6 +182,13 @@ func isMemoryWrite(toolName string) bool {
 		strings.Contains(lower, "update")
 }
 
+// isMemorySearch returns true for tool names that represent memory search/read
+// operations which may return fragmented results.
+func isMemorySearch(toolName string) bool {
+	lower := strings.ToLower(toolName)
+	return strings.Contains(lower, "search") || strings.Contains(lower, "query")
+}
+
 func (r *EventRouter) SetGuardrailConfig(cfg *config.GuardrailConfig) {
 	r.guardrailCfg = cfg
 }
@@ -1415,6 +1422,15 @@ func (r *EventRouter) handleToolResult(evt EventFrame) {
 
 	r.inspectToolResult(payload)
 
+	// Phase 4: Memory search fragmentation — count result fragments for search tools.
+	if r.otel != nil && r.otel.InsightClaw() != nil && r.otel.InsightClaw().Experimental() {
+		if isMemoryTool(payload.Tool) && isMemorySearch(payload.Tool) && payload.Output != "" {
+			if fragments := countJSONArrayElements(payload.Output); fragments > 1 {
+				r.otel.InsightClaw().EmitMemorySearchFragmentation(context.Background(), payload.Tool, int64(fragments))
+			}
+		}
+	}
+
 	if r.otel != nil {
 		r.spanMu.Lock()
 		var as *activeSpan
@@ -1793,4 +1809,18 @@ func countToolUseBlocks(content json.RawMessage) int {
 		}
 	}
 	return count
+}
+
+// countJSONArrayElements returns the number of top-level elements if the
+// string parses as a JSON array; otherwise returns 0.
+func countJSONArrayElements(s string) int {
+	s = strings.TrimSpace(s)
+	if len(s) == 0 || s[0] != '[' {
+		return 0
+	}
+	var arr []json.RawMessage
+	if err := json.Unmarshal([]byte(s), &arr); err != nil {
+		return 0
+	}
+	return len(arr)
 }
