@@ -97,6 +97,11 @@ func (a *APIServer) importDecodedOTLPRequestV8(
 			return accounting.addPrimary(otlpInboundInvalidRecord)
 		}
 		if disposition, terminal := inboundTerminalDisposition(classifier, leaf, classification); terminal {
+			if disposition == otlpInboundUnsupportedIdentity {
+				if compatDisposition, handled := a.importInsightClawCompatibilityMetricV8(ctx, leaf, authenticatedSource); handled {
+					return accounting.addPrimary(compatDisposition)
+				}
+			}
 			return accounting.addPrimary(disposition)
 		}
 		correlated, correlationErr := a.correlateNativeOTLPLeafV8(

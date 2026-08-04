@@ -72,7 +72,6 @@ const insightClawNPMSource = "@outshift-open/insightclaw@" + insightClawNPMVersi
 
 var defaultInsightClawConfig = map[string]interface{}{
 	"captureContent":           false,
-	"endpoint":                 "http://172.17.0.1:4318",
 	"metrics":                  true,
 	"protocol":                 "http",
 	"serviceName":              "openclaw-gateway",
@@ -80,6 +79,19 @@ var defaultInsightClawConfig = map[string]interface{}{
 	"spanCacheVerboseLogs":     false,
 	"traces":                   true,
 	"emitIoaObserveAttributes": true,
+}
+
+const defaultInsightClawGatewayAPIAddr = "127.0.0.1:18970"
+
+func defaultInsightClawEndpoint(apiAddr string) string {
+	trimmed := strings.TrimSpace(apiAddr)
+	if trimmed == "" {
+		trimmed = defaultInsightClawGatewayAPIAddr
+	}
+	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+		return strings.TrimRight(trimmed, "/")
+	}
+	return "http://" + strings.TrimRight(trimmed, "/")
 }
 
 // openClawExtensionAvailable returns true when the embedded OpenClaw
@@ -202,7 +214,7 @@ func (c *OpenClawConnector) Setup(ctx context.Context, opts SetupOpts) error {
 	if err := captureManagedFileBackup(opts.DataDir, c.Name(), "openclaw.json", configPath); err != nil {
 		return fmt.Errorf("openclaw config backup: %w", err)
 	}
-	if err := installOpenClawExtension(ctx, openClawHome(), opts.HILTEnabled); err != nil {
+	if err := installOpenClawExtension(ctx, openClawHome(), opts.APIAddr, opts.HILTEnabled); err != nil {
 		return fmt.Errorf("openclaw extension install: %w", err)
 	}
 	if err := updateManagedFileBackupPostHash(opts.DataDir, c.Name(), "openclaw.json", configPath); err != nil {
@@ -269,7 +281,7 @@ func (c *OpenClawConnector) Teardown(ctx context.Context, opts SetupOpts) error 
 // <ocHome>/extensions/defenseclaw and registers the plugin in
 // <ocHome>/openclaw.json. Idempotent: re-running leaves the config in the
 // same shape (single allow entry, single load path, enabled=true).
-func installOpenClawExtension(ctx context.Context, ocHome string, enablePluginApprovals bool) error {
+func installOpenClawExtension(ctx context.Context, ocHome, gatewayAPIAddr string, enablePluginApprovals bool) error {
 	extDir := filepath.Join(ocHome, "extensions", "defenseclaw")
 	parentDir := filepath.Join(ocHome, "extensions")
 
@@ -289,7 +301,7 @@ func installOpenClawExtension(ctx context.Context, ocHome string, enablePluginAp
 	}
 
 	configPath := filepath.Join(ocHome, "openclaw.json")
-	if err := patchOpenClawConfig(configPath, extDir, enablePluginApprovals, insightClawInstalled); err != nil {
+	if err := patchOpenClawConfig(configPath, extDir, gatewayAPIAddr, enablePluginApprovals, insightClawInstalled); err != nil {
 		return fmt.Errorf("patch openclaw.json: %w", err)
 	}
 	return nil
@@ -701,7 +713,7 @@ func writeEmbeddedTree(fsys embed.FS, srcRoot, dstRoot string, fileMode, dirMode
 // patchOpenClawConfig reads openclaw.json (creates it if missing), ensures
 // the DefenseClaw plugin is allowed, enabled, and has its extension path
 // in plugins.load.paths. Other sections are left untouched.
-func patchOpenClawConfig(configPath, extDir string, enablePluginApprovals, insightClawInstalled bool) error {
+func patchOpenClawConfig(configPath, extDir, gatewayAPIAddr string, enablePluginApprovals, insightClawInstalled bool) error {
 	return withFileLock(configPath, func() error {
 		cfg := map[string]interface{}{}
 		if data, err := os.ReadFile(configPath); err == nil && len(data) > 0 {
@@ -740,6 +752,7 @@ func patchOpenClawConfig(configPath, extDir string, enablePluginApprovals, insig
 
 		if insightClawInstalled {
 			insightClawExtDir := filepath.Join(filepath.Dir(configPath), "extensions", insightClawOpenClawPluginID)
+			insightClawEndpoint := defaultInsightClawEndpoint(gatewayAPIAddr)
 
 			plugins["allow"] = appendUniqueString(plugins["allow"], insightClawOpenClawPluginID)
 
@@ -756,6 +769,9 @@ func patchOpenClawConfig(configPath, extDir string, enablePluginApprovals, insig
 				if _, ok := insightClawConfig[k]; !ok {
 					insightClawConfig[k] = v
 				}
+			}
+			if _, ok := insightClawConfig["endpoint"]; !ok {
+				insightClawConfig["endpoint"] = insightClawEndpoint
 			}
 			insightClawEntry["config"] = insightClawConfig
 			entries[insightClawOpenClawPluginID] = insightClawEntry
