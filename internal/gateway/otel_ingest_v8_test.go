@@ -40,7 +40,11 @@ var otlpV8MetricFamilies = []observability.EventName{
 	observability.EventName(observability.TelemetryInstrumentDefenseClawOTelIngestMalformed),
 	observability.EventName(observability.TelemetryInstrumentDefenseClawOTelIngestRecords),
 	observability.EventName(observability.TelemetryInstrumentDefenseClawOTelIngestRequests),
+	observability.EventName(observability.TelemetryInstrumentDefenseClawAgentReportedCost),
 	observability.EventName(observability.TelemetryInstrumentDefenseClawAgentTokenUsage),
+	observability.EventName(observability.TelemetryInstrumentDefenseClawToolCalls),
+	observability.EventName(observability.TelemetryInstrumentDefenseClawToolDuration),
+	observability.EventName(observability.TelemetryInstrumentDefenseClawToolErrors),
 	observability.EventName(observability.TelemetryInstrumentGenAIClientOperationDuration),
 	observability.EventName(observability.TelemetryInstrumentGenAIClientTokenUsage),
 }
