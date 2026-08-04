@@ -825,6 +825,9 @@ func TestOpenClaw_Setup_InstallsExtensionAndPatchesConfig(t *testing.T) {
 			t.Errorf("insightclaw.config.%s = %v, want %v", k, got, want)
 		}
 	}
+	if got, want := insightClawConfig["endpoint"], "http://"+opts.APIAddr; got != want {
+		t.Errorf("insightclaw.config.endpoint = %v, want native DefenseClaw sink %v", got, want)
+	}
 	load, _ := plugins["load"].(map[string]interface{})
 	paths, _ := load["paths"].([]interface{})
 	foundPath := false
@@ -1009,7 +1012,7 @@ func TestPatchOpenClawConfig_PreservesDefenseClawPluginConfig(t *testing.T) {
 		}
 	}`), 0o644)
 
-	if err := patchOpenClawConfig(configPath, filepath.Join(dir, "extensions", "defenseclaw"), false, true); err != nil {
+	if err := patchOpenClawConfig(configPath, filepath.Join(dir, "extensions", "defenseclaw"), "127.0.0.1:28970", false, true); err != nil {
 		t.Fatalf("patchOpenClawConfig: %v", err)
 	}
 
@@ -1069,7 +1072,7 @@ func TestPatchOpenClawConfig_OverwritesInsightClawInstallMetadata(t *testing.T) 
 		}
 	}`), 0o644)
 
-	if err := patchOpenClawConfig(configPath, filepath.Join(dir, "extensions", "defenseclaw"), false, true); err != nil {
+	if err := patchOpenClawConfig(configPath, filepath.Join(dir, "extensions", "defenseclaw"), "127.0.0.1:18970", false, true); err != nil {
 		t.Fatalf("patchOpenClawConfig: %v", err)
 	}
 
@@ -10107,7 +10110,7 @@ func TestPatchOpenClawConfig_Concurrent(t *testing.T) {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			errs[idx] = patchOpenClawConfig(configPath, "/tmp/ext-"+strings.Repeat("x", idx), false, true)
+			errs[idx] = patchOpenClawConfig(configPath, "/tmp/ext-"+strings.Repeat("x", idx), "127.0.0.1:18970", false, true)
 		}(i)
 	}
 	wg.Wait()

@@ -35,6 +35,7 @@ type CorrelationProfileVersion string
 const (
 	CorrelationProfileExplicitV1    CorrelationProfileVersion = "explicit-canonical-v1"
 	CorrelationProfileOpenClawV1    CorrelationProfileVersion = "openclaw-correlation-v1"
+	CorrelationProfileOpenClawV2    CorrelationProfileVersion = "openclaw-correlation-v2"
 	CorrelationProfileZeptoClawV1   CorrelationProfileVersion = "zeptoclaw-correlation-v1"
 	CorrelationProfileClaudeCodeV1  CorrelationProfileVersion = "claudecode-correlation-v1"
 	CorrelationProfileCodexV1       CorrelationProfileVersion = "codex-correlation-v1"
@@ -495,6 +496,12 @@ func nativeStandard(namespace string) []CorrelationFieldBinding {
 func nativeTelemetryForConnector(name string) NativeTelemetrySpec {
 	none := NativeTelemetrySpec{InputSurface: CorrelationSurfaceNativeOTLP, Stability: NativeTelemetryNone}
 	switch name {
+	case "openclaw":
+		return NativeTelemetrySpec{
+			InputSurface: CorrelationSurfaceNativeOTLP,
+			Signals:      []NativeTelemetrySignal{NativeTelemetryMetrics},
+			Stability:    NativeTelemetryExperimental,
+		}
 	case "codex":
 		// Only call_id is source-proven to be the same invocation exported to
 		// Codex hooks as tool_use_id. Standard GenAI attributes remain typed
@@ -578,7 +585,10 @@ func CorrelationSpecForConnector(name, hookContractID string) (CorrelationSpec, 
 			reported(CorrelationTargetTool, ns, "tool_invocation", "callId", "call_id", "toolCallId"),
 			reported(CorrelationTargetSourceSeq, ns, "source_sequence", "sequence", "seq"),
 		)
-		spec, ok := makeSpec(CorrelationProfileOpenClawV1, "", []CorrelationSurface{CorrelationSurfaceProxy, CorrelationSurfaceStream}, bindings, nil, []CorrelationInferenceRule{CorrelationInferencePromptBoundaryTurn, CorrelationInferenceUniquePendingTool}, complete(CorrelationCompletenessComplete, CorrelationCompletenessPartial, CorrelationCompletenessPartial, CorrelationCompletenessComplete, CorrelationCompletenessComplete, CorrelationCompletenessAbsent, "upstream parent/depth fields are not retained on every EventRouter event", "no reviewed customer native OTLP contract"))
+		native := appendBindings(nativeStandard(ns),
+			reported(CorrelationTargetSession, ns, "session", "openclaw.session.key", "gen_ai.conversation.id"),
+		)
+		spec, ok := makeSpec(CorrelationProfileOpenClawV2, "", []CorrelationSurface{CorrelationSurfaceProxy, CorrelationSurfaceStream, CorrelationSurfaceNativeOTLP}, bindings, native, []CorrelationInferenceRule{CorrelationInferencePromptBoundaryTurn, CorrelationInferenceUniquePendingTool}, complete(CorrelationCompletenessComplete, CorrelationCompletenessPartial, CorrelationCompletenessPartial, CorrelationCompletenessComplete, CorrelationCompletenessComplete, CorrelationCompletenessPartial, "upstream parent/depth fields are not retained on every EventRouter event", "InsightClaw metrics do not consistently report turn, model request/response, or tool invocation IDs"))
 		if ok {
 			spec.ProxyBindings = []CorrelationFieldBinding{
 				reported(CorrelationTargetSession, ns, "session", "session_id"),

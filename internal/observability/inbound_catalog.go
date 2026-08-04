@@ -134,6 +134,7 @@ const (
 	InboundMappingConnectorModelLog InboundMappingStrategy = "connector-model-log-v1"
 	InboundMappingConnectorToolLog  InboundMappingStrategy = "connector-tool-log-v1"
 	InboundMappingDurationMetric    InboundMappingStrategy = "duration-metric-v1"
+	InboundMappingValueMetric       InboundMappingStrategy = "value-metric-v1"
 	InboundMappingReverseMetric     InboundMappingStrategy = "generated-reverse-metric-v1"
 	InboundMappingReverseSpan       InboundMappingStrategy = "generated-reverse-span-v1"
 	InboundMappingNativeLog         InboundMappingStrategy = "native-projected-log-v1"
@@ -190,6 +191,7 @@ const (
 	InboundDerivationClaudeTokenUsage InboundDerivationStrategy = "claude-token-usage-v1"
 	InboundDerivationCodexTokenFields InboundDerivationStrategy = "codex-token-fields-v1"
 	InboundDerivationDurationMetric   InboundDerivationStrategy = "duration-metric-v1"
+	InboundDerivationValueMetric      InboundDerivationStrategy = "value-metric-v1"
 	InboundDerivationElapsedTime      InboundDerivationStrategy = "elapsed-time-v1"
 	InboundDerivationFieldValue       InboundDerivationStrategy = "field-value-v1"
 )

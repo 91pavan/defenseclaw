@@ -382,6 +382,13 @@ func (a *APIServer) inboundDerivedMetricSourceV8(
 			err = timestampErr
 		}
 		return value, source, timestamp, false, false, err
+	case observability.InboundDerivationValueMetric:
+		value, source, err := inboundDurationMetricSourceV8(leaf)
+		timestamp, timestampErr := selectedInboundMetricTime(leaf, receipt)
+		if err == nil {
+			err = timestampErr
+		}
+		return value, source, timestamp, false, false, err
 	default:
 		return observability.InboundMetricValue{}, observability.InboundMetricSourceFacts{}, time.Time{}, false, false, errOTLPInboundMappingV8
 	}

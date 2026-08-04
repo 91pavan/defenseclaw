@@ -4831,6 +4831,9 @@ _INBOUND_CLASS_IDS: Final = (
     "otlp.codex.response_completed.v1",
     "otlp.claudecode.token_usage.v1",
     "otlp.codex.token_usage.v1",
+    "otlp.insightclaw.prompt_tokens.v1",
+    "otlp.insightclaw.tool_calls.v1",
+    "otlp.insightclaw.reported_cost.v1",
     "otlp.genai.duration.metric.v1",
 )
 _INBOUND_SOURCE_PROJECTION_PLAN_IDS: Final = (
@@ -4933,7 +4936,7 @@ def _candidate_inbound_source_unit_rule(
             raise CandidateRenderError("materialized inbound source-unit scale value is invalid")
         observed.append((source_unit, float(scale)))
     if kind == "none":
-        if strategy in {"generated-reverse-metric-v1", *tuple(_INBOUND_SOURCE_UNIT_TABLES)} or target_unit or observed:
+        if strategy in {"generated-reverse-metric-v1", "value-metric-v1", *tuple(_INBOUND_SOURCE_UNIT_TABLES)} or target_unit or observed:
             raise CandidateRenderError("materialized inbound source-unit rule is missing")
     elif kind == "target-unit-equality-v1":
         if (
@@ -4946,12 +4949,11 @@ def _candidate_inbound_source_unit_rule(
     elif kind == "scale-table-v1":
         expected = _INBOUND_SOURCE_UNIT_TABLES.get(strategy)
         expected_target = {"duration-metric-v1": "s", "claude-token-usage-v1": "{token}"}.get(strategy)
-        if (
-            expected is None
-            or family_unit != expected_target
-            or target_unit != expected_target
-            or tuple(observed) != expected
-        ):
+        sealed_invalid = strategy != "value-metric-v1" and (
+            expected is None or family_unit != expected_target or target_unit != expected_target or tuple(observed) != expected
+        )
+        value_invalid = strategy == "value-metric-v1" and (family_unit != target_unit or not observed)
+        if sealed_invalid or value_invalid:
             raise CandidateRenderError("materialized inbound source-unit scale table drifted")
     else:
         raise CandidateRenderError("materialized inbound source-unit rule kind is unknown")

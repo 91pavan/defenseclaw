@@ -802,6 +802,29 @@ func inboundMetricNumberAndDerivation(
 				return familyMetricNumber{}, "", Absent[uint64](), familyBuildFailure(FamilyBuildInvalidMetric)
 			}
 		}
+	case InboundDerivationValueMetric:
+		if match.signal != SignalMetrics || target.mappingStrategy != InboundMappingValueMetric {
+			return familyMetricNumber{}, "", Absent[uint64](), familyBuildFailure(FamilyBuildInvalidDescriptor)
+		}
+		scale, err = inboundMetricSourceScale(target, match, source, "gauge", "sum", "histogram")
+		if err != nil {
+			return familyMetricNumber{}, "", Absent[uint64](), err
+		}
+		if source.kind == inboundMetricSourceHistogramMean {
+			if source.aggregateCount == 0 {
+				return familyMetricNumber{}, "", Absent[uint64](), familyBuildFailure(FamilyBuildInvalidMetric)
+			}
+			raw /= float64(source.aggregateCount)
+			derivation = ImportDerivationArithmeticMean
+			aggregateCount = Present(source.aggregateCount)
+		} else {
+			switch source.kind {
+			case inboundMetricSourceGauge, inboundMetricSourceDeltaSum, inboundMetricSourceCumulativeSum:
+				derivation = ImportDerivationFieldValue
+			default:
+				return familyMetricNumber{}, "", Absent[uint64](), familyBuildFailure(FamilyBuildInvalidMetric)
+			}
+		}
 	default:
 		return familyMetricNumber{}, "", Absent[uint64](), familyBuildFailure(FamilyBuildInvalidDescriptor)
 	}

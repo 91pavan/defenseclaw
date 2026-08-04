@@ -127,6 +127,89 @@ func TestInboundCorrelationPreservesDistinctTypedIDsAndUsesProviderPreference(t 
 	}
 }
 
+func TestOTLPInboundInsightClawCorrelationSpansCanonicalBuckets(t *testing.T) {
+	previousInstance := gatewaylog.SidecarInstanceID()
+	gatewaylog.SetSidecarInstanceID("otlp-insightclaw-correlation-test")
+	t.Cleanup(func() { gatewaylog.SetSidecarInstanceID(previousInstance) })
+
+	tests := []struct {
+		name       string
+		metricName string
+		unit       string
+		sum        bool
+		wantBucket observability.Bucket
+	}{
+		{
+			name: "model IO", metricName: "openclaw.llm.tokens.prompt", unit: "tokens",
+			wantBucket: observability.BucketModelIO,
+		},
+		{
+			name: "tool activity", metricName: "openclaw.tool.calls", unit: "calls",
+			sum: true, wantBucket: observability.BucketToolActivity,
+		},
+		{
+			name: "agent lifecycle", metricName: "openclaw.cost.usd", unit: "usd",
+			wantBucket: observability.BucketAgentLifecycle,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newOTLPV8MetricFixture(t)
+			api := &APIServer{}
+			api.bindOTLPObservabilityRuntime(fixture.runtime)
+			now := time.Now().UTC()
+			point := &metricspb.NumberDataPoint{
+				TimeUnixNano: uint64(now.UnixNano()),
+				Attributes: []*commonpb.KeyValue{
+					otlpClassifierStringAttribute("openclaw.session.key", "session-shared"),
+					otlpClassifierStringAttribute("gen_ai.agent.id", "agent-shared"),
+					otlpClassifierStringAttribute("gen_ai.response.model", "gpt-4o"),
+					otlpClassifierStringAttribute("openclaw.provider", "openai"),
+					otlpClassifierStringAttribute("tool.name", "shell"),
+				},
+				Value: &metricspb.NumberDataPoint_AsInt{AsInt: 1},
+			}
+			metric := &metricspb.Metric{Name: test.metricName, Unit: test.unit}
+			if test.sum {
+				metric.Data = &metricspb.Metric_Sum{Sum: &metricspb.Sum{
+					AggregationTemporality: metricspb.AggregationTemporality_AGGREGATION_TEMPORALITY_DELTA,
+					IsMonotonic:            true,
+					DataPoints:             []*metricspb.NumberDataPoint{point},
+				}}
+			} else {
+				metric.Data = &metricspb.Metric_Gauge{Gauge: &metricspb.Gauge{
+					DataPoints: []*metricspb.NumberDataPoint{point},
+				}}
+			}
+			message := &collectormetricspb.ExportMetricsServiceRequest{ResourceMetrics: []*metricspb.ResourceMetrics{{
+				Resource: &resourcepb.Resource{Attributes: []*commonpb.KeyValue{
+					otlpClassifierStringAttribute("service.name", "openclaw-gateway"),
+				}},
+				ScopeMetrics: []*metricspb.ScopeMetrics{{Metrics: []*metricspb.Metric{metric}}},
+			}}}
+
+			accounting, err := api.importDecodedOTLPRequestV8(
+				context.Background(), message, otelSignalMetrics, "openclaw", now,
+			)
+			if err != nil || accounting.derivedOnly != 1 || !accounting.valid() {
+				t.Fatalf("InsightClaw accounting=%+v err=%v", accounting, err)
+			}
+			records := fixture.pipelines.sinks(t, 1).local.snapshot()
+			if len(records) != 1 {
+				t.Fatalf("canonical metric count=%d, want 1", len(records))
+			}
+			record := records[0].CanonicalRecord()
+			if record.Bucket() != test.wantBucket {
+				t.Fatalf("bucket=%q want %q", record.Bucket(), test.wantBucket)
+			}
+			correlation := record.Correlation()
+			if correlation.SessionID != "session-shared" || correlation.AgentID != "agent-shared" {
+				t.Fatalf("correlation=%+v", correlation)
+			}
+		})
+	}
+}
+
 func TestOTLPInboundUnsupportedLeafCompletesPrimaryAccounting(t *testing.T) {
 	previousInstance := gatewaylog.SidecarInstanceID()
 	gatewaylog.SetSidecarInstanceID("otlp-inbound-accounting-test")

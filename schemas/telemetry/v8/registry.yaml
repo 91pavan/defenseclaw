@@ -54,7 +54,7 @@ inbound_bindings:
       target: gen_ai.provider.name
       value_type: string
       normalization: bounded-v1
-      sources: [gen_ai.provider.name, $authenticated_source]
+      sources: [gen_ai.provider.name, openclaw.provider, $authenticated_source]
     - id: request-model-v1
       target: gen_ai.request.model
       value_type: string
@@ -80,6 +80,21 @@ inbound_bindings:
       value_type: structured
       normalization: structured-genai-v1
       sources: [gen_ai.tool.call.result, output]
+    - id: insightclaw-tool-name-v1
+      target: gen_ai.tool.name
+      value_type: string
+      normalization: identifier-v1
+      sources: [gen_ai.tool.name, tool.name]
+    - id: insightclaw-tool-provider-v1
+      target: defenseclaw.tool.provider
+      value_type: string
+      normalization: bounded-v1
+      sources: [defenseclaw.tool.provider, openclaw.channel]
+    - id: insightclaw-connector-v1
+      target: defenseclaw.connector.source
+      value_type: string
+      normalization: identifier-v1
+      sources: [$authenticated_source]
     - id: input-content-v1
       target: gen_ai.input.messages
       value_type: structured
@@ -203,7 +218,7 @@ inbound_bindings:
           requirement: required
           normalization: genai-provider-label-v1
           source_groups:
-            - {placement: metric_point_attribute, keys: [gen_ai.provider.name]}
+            - {placement: metric_point_attribute, keys: [gen_ai.provider.name, openclaw.provider]}
             - {placement: authenticated_source, keys: [$authenticated_source]}
             - {placement: resource_attribute, keys: [service.name]}
         - target: gen_ai.request.model
@@ -221,6 +236,7 @@ inbound_bindings:
           source_groups:
             - {placement: metric_point_attribute, keys: [type]}
             - {placement: metric_point_attribute, keys: [token_type]}
+            - {placement: fixed, keys: [input]}
       cumulative_series:
         applicability: monotonic-cumulative-sum
         framing: length-prefixed-presence-v1
@@ -259,6 +275,7 @@ inbound_bindings:
             source_groups:
               - {placement: metric_point_attribute, keys: [type]}
               - {placement: metric_point_attribute, keys: [token_type]}
+              - {placement: fixed, keys: [input]}
           - id: normalized_conversation
             requirement: optional
             normalization: identifier-label-v1
@@ -530,6 +547,79 @@ inbound_bindings:
             - {source_unit: '{token}', scale: 1}
             - {source_unit: token, scale: 1}
             - {source_unit: tokens, scale: 1}
+      derived_targets: []
+      time_rule: metric-point-receipt-v1
+      outcome_rule: forbidden
+      native_round_trip: false
+    - id: otlp.insightclaw.prompt_tokens.v1
+      signal: metrics
+      sources: [openclaw]
+      mode: derive
+      expansion: {kind: singleton, primary_family: metric.gen_ai.client.token.usage}
+      discriminator:
+        kind: connector-metric-v1
+        predicates:
+          - {location: resource_attribute, key: defenseclaw.telemetry.forward.instance_id, operator: absent, value_type: string}
+          - {location: instrument_name, key: $instrument_name, operator: equals, values: [openclaw.llm.tokens.prompt], value_type: string}
+          - {location: metric_point, key: $point_shape, operator: one_of, values: [sum, gauge, histogram], value_type: string}
+      mapping:
+        strategy: claude-token-usage-v1
+        alias_sets: []
+        source_projection_plan: genai-token-metric-v1
+        unit_rule:
+          kind: scale-table-v1
+          accepted:
+            - {source_unit: '', scale: 1}
+            - {source_unit: '{token}', scale: 1}
+            - {source_unit: token, scale: 1}
+            - {source_unit: tokens, scale: 1}
+      derived_targets: []
+      time_rule: metric-point-receipt-v1
+      outcome_rule: forbidden
+      native_round_trip: false
+    - id: otlp.insightclaw.tool_calls.v1
+      signal: metrics
+      sources: [openclaw]
+      mode: derive
+      expansion: {kind: singleton, primary_family: metric.defenseclaw.tool.calls}
+      discriminator:
+        kind: connector-metric-v1
+        predicates:
+          - {location: resource_attribute, key: defenseclaw.telemetry.forward.instance_id, operator: absent, value_type: string}
+          - {location: instrument_name, key: $instrument_name, operator: equals, values: [openclaw.tool.calls], value_type: string}
+          - {location: metric_point, key: $point_shape, operator: one_of, values: [sum, gauge], value_type: string}
+      mapping:
+        strategy: value-metric-v1
+        alias_sets: [insightclaw-tool-name-v1, insightclaw-tool-provider-v1]
+        unit_rule:
+          kind: scale-table-v1
+          accepted:
+            - {source_unit: '{call}', scale: 1}
+            - {source_unit: call, scale: 1}
+            - {source_unit: calls, scale: 1}
+      derived_targets: []
+      time_rule: metric-point-receipt-v1
+      outcome_rule: forbidden
+      native_round_trip: false
+    - id: otlp.insightclaw.reported_cost.v1
+      signal: metrics
+      sources: [openclaw]
+      mode: derive
+      expansion: {kind: singleton, primary_family: metric.defenseclaw.agent.reported_cost}
+      discriminator:
+        kind: connector-metric-v1
+        predicates:
+          - {location: resource_attribute, key: defenseclaw.telemetry.forward.instance_id, operator: absent, value_type: string}
+          - {location: instrument_name, key: $instrument_name, operator: equals, values: [openclaw.cost.usd], value_type: string}
+          - {location: metric_point, key: $point_shape, operator: one_of, values: [sum, gauge], value_type: string}
+      mapping:
+        strategy: value-metric-v1
+        alias_sets: [insightclaw-connector-v1, provider-v1, request-model-v1]
+        unit_rule:
+          kind: scale-table-v1
+          accepted:
+            - {source_unit: USD, scale: 1}
+            - {source_unit: usd, scale: 1}
       derived_targets: []
       time_rule: metric-point-receipt-v1
       outcome_rule: forbidden

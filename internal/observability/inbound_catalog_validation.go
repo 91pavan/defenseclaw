@@ -1320,6 +1320,7 @@ func validInboundMappingStrategy(value InboundMappingStrategy) bool {
 	return containsInboundString([]string{
 		string(InboundMappingClaudeTokenUsage), string(InboundMappingConnectorModelLog),
 		string(InboundMappingConnectorToolLog), string(InboundMappingDurationMetric), string(InboundMappingReverseMetric),
+		string(InboundMappingValueMetric),
 		string(InboundMappingReverseSpan), string(InboundMappingNativeLog),
 		string(InboundMappingStandardGenAISpan),
 	}, string(value))
@@ -1337,6 +1338,7 @@ func validInboundDerivationStrategy(value InboundDerivationStrategy) bool {
 	return containsInboundString([]string{
 		string(InboundDerivationNone), string(InboundDerivationClaudeTokenUsage),
 		string(InboundDerivationCodexTokenFields), string(InboundDerivationDurationMetric),
+		string(InboundDerivationValueMetric),
 		string(InboundDerivationElapsedTime), string(InboundDerivationFieldValue),
 	}, string(value))
 }

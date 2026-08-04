@@ -565,11 +565,35 @@ func TestSourceProvenCrossRailMirrorIDsShareOneTypedKind(t *testing.T) {
 	}
 }
 
-func TestOpenClawNativeTelemetryFailsClosedWithoutReviewedExporter(t *testing.T) {
+func TestOpenClawInsightClawNativeMetricCorrelation(t *testing.T) {
 	spec := DefaultCorrelationSpec("openclaw")
-	if spec.NativeTelemetry.Stability != NativeTelemetryNone || len(spec.NativeOTLPBindings) != 0 ||
-		len(spec.MirrorIdentityTargets) != 0 {
-		t.Fatalf("OpenClaw advertises unreviewed native telemetry: %+v mirrors=%v",
+	if spec.ProfileVersion != CorrelationProfileOpenClawV2 ||
+		spec.NativeTelemetry.Stability != NativeTelemetryExperimental ||
+		len(spec.NativeTelemetry.Signals) != 1 || spec.NativeTelemetry.Signals[0] != NativeTelemetryMetrics {
+		t.Fatalf("OpenClaw InsightClaw native telemetry contract: version=%q telemetry=%+v",
+			spec.ProfileVersion, spec.NativeTelemetry)
+	}
+	attributes := map[string]interface{}{
+		"openclaw.session.key": "session-1",
+		"gen_ai.agent.id":      "agent-1",
+	}
+	wants := map[CorrelationTarget]string{
+		CorrelationTargetSession: "session-1",
+		CorrelationTargetAgent:   "agent-1",
+	}
+	for target, want := range wants {
+		value, ok := spec.NativeOTLPValue(attributes, target)
+		if !ok || value.Value != want {
+			t.Errorf("OpenClaw native %s=(%+v,%v), want %q", target, value, ok, want)
+		}
+	}
+	for _, target := range []CorrelationTarget{CorrelationTargetTurn, CorrelationTargetModelRequest, CorrelationTargetTool} {
+		if value, ok := spec.NativeOTLPValue(attributes, target); ok {
+			t.Errorf("OpenClaw invented absent native %s identity: %+v", target, value)
+		}
+	}
+	if len(spec.MirrorIdentityTargets) != 0 || len(spec.NativeTelemetry.AuthoritativeFields) != 0 {
+		t.Fatalf("InsightClaw membership IDs gained cross-rail authority: telemetry=%+v mirrors=%v",
 			spec.NativeTelemetry, spec.MirrorIdentityTargets)
 	}
 }

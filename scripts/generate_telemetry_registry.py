@@ -9090,6 +9090,9 @@ _INBOUND_ALIAS_IDS: Final = (
     "codex-tool-call-id-v1",
     "codex-tool-arguments-v1",
     "codex-tool-result-v1",
+    "insightclaw-tool-name-v1",
+    "insightclaw-tool-provider-v1",
+    "insightclaw-connector-v1",
     "input-content-v1",
     "output-content-v1",
     "input-tokens-v1",
@@ -9135,6 +9138,9 @@ _INBOUND_CLASS_IDS: Final = (
     "otlp.codex.response_completed.v1",
     "otlp.claudecode.token_usage.v1",
     "otlp.codex.token_usage.v1",
+    "otlp.insightclaw.prompt_tokens.v1",
+    "otlp.insightclaw.tool_calls.v1",
+    "otlp.insightclaw.reported_cost.v1",
     "otlp.genai.duration.metric.v1",
 )
 _INBOUND_SIGNALS: Final = frozenset({"logs", "traces", "metrics"})
@@ -9542,7 +9548,7 @@ def _inbound_unit_rule(value: Any, *, strategy: str, path: str) -> dict[str, Any
         "duration-metric-v1": _INBOUND_DURATION_UNIT_SCALES,
         "claude-token-usage-v1": _INBOUND_TOKEN_UNIT_SCALES,
     }.get(strategy)
-    if expected is None:
+    if expected is None and strategy != "value-metric-v1":
         raise RegistryError(f"{path}: unit rule is forbidden for mapping strategy {strategy}")
     rule = _inbound_mapping(value, path)
     _exact_keys(rule, {"kind", "accepted"}, set(), path)
@@ -9561,7 +9567,7 @@ def _inbound_unit_rule(value: Any, *, strategy: str, path: str) -> dict[str, Any
             raise RegistryError(f"{entry_path}.scale: expected finite positive number")
         accepted.append({"source_unit": source_unit, "scale": float(scale)})
     observed = tuple((entry["source_unit"], entry["scale"]) for entry in accepted)
-    if observed != expected:
+    if expected is not None and observed != expected:
         raise RegistryError(f"{path}.accepted: canonical source-unit table/order mismatch")
     return {"kind": "scale-table-v1", "accepted": accepted}
 
@@ -9578,8 +9584,8 @@ def _resolved_inbound_unit_rule(rule: Mapping[str, Any] | None, *, target: Group
             "target_unit": target.metric_unit,
             "accepted": [{"source_unit": target.metric_unit, "scale": 1.0}],
         }
-    expected_target = {"duration-metric-v1": "s", "claude-token-usage-v1": "{token}"}
-    if kind != "scale-table-v1" or target.metric_unit != expected_target.get(path):
+    expected_target = {"duration-metric-v1": "s", "claude-token-usage-v1": "{token}"}.get(path)
+    if kind != "scale-table-v1" or (expected_target is not None and target.metric_unit != expected_target):
         raise RegistryError(f"registry.inbound_bindings: {path} target unit disagrees with its sealed metric family")
     return {"kind": kind, "target_unit": target.metric_unit, "accepted": list(rule["accepted"])}
 
@@ -9836,6 +9842,7 @@ def _parse_inbound_otlp(
             "generated-reverse-metric-v1",
             "duration-metric-v1",
             "claude-token-usage-v1",
+            "value-metric-v1",
         }:
             raise RegistryError(f"{class_path}.mapping.unit_rule: required for {mapping_strategy}")
         alias_ids = _string_list(mapping["alias_sets"], f"{class_path}.mapping.alias_sets")
