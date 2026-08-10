@@ -27,9 +27,9 @@ MANIFEST_FILES = (
     "plugin.json",
     "plugin.yaml",
     "plugin.yml",
+    "openclaw.plugin.json",
     "package.json",
     "manifest.json",
-    "openclaw.plugin.json",
 )
 _MAX_MANIFEST_BYTES = 1_048_576
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")

@@ -1071,6 +1071,14 @@ func parseInboundSourceUnitRule(
 			len(accepted) == 0 {
 			return inboundSourceUnitRuleEntry{}, invalidInboundCatalog("token source-unit table drift")
 		}
+	case InboundMappingValueMetric:
+		// Unlike duration/token, value-metric-v1 covers arbitrary instrument
+		// units ("{call}", "USD", ...), so the target unit is checked against
+		// the sealed family unit rather than a fixed literal.
+		if signal != SignalMetrics || kind != InboundSourceUnitScaleTable || input.TargetUnit != instrumentUnit ||
+			len(accepted) == 0 {
+			return inboundSourceUnitRuleEntry{}, invalidInboundCatalog("value metric source-unit table drift")
+		}
 	default:
 		if kind != InboundSourceUnitNone || input.TargetUnit != "" || len(accepted) != 0 {
 			return inboundSourceUnitRuleEntry{}, invalidInboundCatalog("unexpected source-unit rule")

@@ -1,0 +1,328 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "defenseclaw-prometheus"
+        },
+        "enable": true,
+        "expr": "ALERTS{alertstate=\"firing\"}",
+        "iconColor": "red",
+        "name": "Firing alerts",
+        "titleFormat": "{{alertname}}"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Tool calls",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "defenseclaw-prometheus"
+      },
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum by (tool_name) (rate(defenseclaw_tool_calls_total[$__rate_interval])) or vector(0)", "legendFormat": "{{tool_name}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool calls Error",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum by (tool_name) (rate(defenseclaw_tool_errors_total[$__rate_interval])) or vector(0)", "legendFormat": "{{tool_name}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool call duration",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le, tool_name) (rate(defenseclaw_tool_duration_milliseconds_bucket[$__rate_interval]))) or vector(0)", "legendFormat": "{{tool_name}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Memory Read events",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 6, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.read|memory_read|memory-read|memory_get|memory.retrieve\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory Write events",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 8, "y": 6, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.write|memory_write|memory-save|memory.upsert\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory Edit events",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 16, "y": 6, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.edit|memory_edit|memory.update|memory.patch\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Memory Search Hit",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 12, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.search|memory_search\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory Search Miss",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 8, "y": 12, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_tool_errors_total{tool_name=~\"memory.search|memory_search\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Search events",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 16, "y": 12, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\".*search.*\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Session Parallelisation and Efficiency Score",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 18, "w": 11, "h": 8},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket[$__rate_interval]))) or vector(0)", "legendFormat": "p95 latency", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Session Repetition  Score",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 11, "y": 18, "w": 13, "h": 8},
+      "targets": [
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Agent Context Preparation duration",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 26, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket[$__rate_interval]))) or vector(0)", "legendFormat": "p50", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Context source - System",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 8, "y": 26, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum by (gen_ai_provider_name) (rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_provider_name}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Context source - Prompt",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 16, "y": 26, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|prompt\"}[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Context source - Tool history",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 32, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum by (tool_name) (rate(defenseclaw_tool_calls_total[$__rate_interval])) or vector(0)", "legendFormat": "{{tool_name}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Context source - User history",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 8, "y": 32, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Context source - unclassified history",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 38, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum(rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "operations", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Context source - Memory history",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 8, "y": 38, "w": 8, "h": 6},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.*\"}[$__rate_interval])) or vector(0)", "legendFormat": "memory tools", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Session spawn duration",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 44, "w": 6, "h": 8},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(defenseclaw_tool_duration_milliseconds_bucket{tool_name=~\"session.spawn|sessions_spawn\"}[$__rate_interval]))) or vector(0)", "legendFormat": "p95", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory fragmentation",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 6, "y": 44, "w": 6, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_tool_errors_total{tool_name=~\"memory.*\"}[$__rate_interval])) or vector(0)", "legendFormat": "memory errors", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Downstream context propagation",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 12, "y": 44, "w": 6, "h": 8},
+      "targets": [
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Agent turns counters",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 52, "w": 9, "h": 8},
+      "targets": [
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Agent output novelty",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 9, "y": 52, "w": 9, "h": 8},
+      "targets": [
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_token_usage_sum[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Downstream context propagation - smoothed",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 60, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "avg_over_time((sum(rate(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval])) or vector(0))[15m:])", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Repetition score - smoothed",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 8, "y": 60, "w": 7, "h": 8},
+      "targets": [
+        {"expr": "avg_over_time((sum(rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0))[15m:])", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "timeseries",
+      "title": "Session Parallelisation and Efficiency Score - smoothed",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 15, "y": 60, "w": 7, "h": 8},
+      "targets": [
+        {"expr": "avg_over_time((histogram_quantile(0.95, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket[$__rate_interval]))) or vector(0))[15m:])", "refId": "A"}
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["defenseclaw", "insightclaw", "openclaw", "compat"],
+  "templating": {
+    "list": [
+      {
+        "name": "groupby",
+        "type": "custom",
+        "query": "session.id,gen_ai.agent.id,gen_ai_request_model,tool_name",
+        "current": {
+          "text": "gen_ai_request_model",
+          "value": "gen_ai_request_model"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+  },
+  "timezone": "browser",
+  "title": "OpenClaw Metrics dashboard",
+  "uid": "defenseclaw-insightclaw-proof",
+  "version": 2,
+  "weekStart": ""
+}

@@ -36,6 +36,19 @@ def _plugin(path: str, plugin_id: str, content: str = "new") -> str:
     return path
 
 
+def test_openclaw_manifest_identity_precedes_scoped_npm_package_name(tmp_path):
+    plugin_dir = tmp_path / "insightclaw"
+    plugin_dir.mkdir()
+    (plugin_dir / "package.json").write_text(
+        json.dumps({"name": "@outshift-open/insightclaw"}), encoding="utf-8"
+    )
+    (plugin_dir / "openclaw.plugin.json").write_text(
+        json.dumps({"id": "insightclaw"}), encoding="utf-8"
+    )
+
+    assert canonical_plugin_id(str(plugin_dir)) == ("insightclaw", "openclaw.plugin.json")
+
+
 def _clean_result() -> ScanResult:
     return ScanResult(
         scanner="plugin-scanner",

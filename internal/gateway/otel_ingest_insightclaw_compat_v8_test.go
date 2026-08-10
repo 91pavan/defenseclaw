@@ -281,8 +281,8 @@ func TestOTLPInboundInsightClawSessionRepetitionMapsToPresenceScore(t *testing.T
 	api := &APIServer{}
 	api.bindOTLPObservabilityRuntime(fixture.runtime)
 	now := time.Now().UTC()
-	sum := 0.72
 
+	sum := 0.72
 	point := &metricspb.HistogramDataPoint{
 		TimeUnixNano: uint64(now.UnixNano()),
 		Attributes: []*commonpb.KeyValue{
@@ -317,7 +317,7 @@ func TestOTLPInboundInsightClawSessionRepetitionMapsToPresenceScore(t *testing.T
 		t.Fatalf("compat session-score metrics = %#v", metrics)
 	}
 	attributes := metrics[0].Attributes()
-	if attributes["defenseclaw.metric.name"] != "session_repetition" {
+	if attributes["name"] != "session_repetition" {
 		t.Fatalf("compat session-score labels = %#v", attributes)
 	}
 }
@@ -331,8 +331,8 @@ func TestOTLPInboundInsightClawContextHistorySizeMapsToTokenUsage(t *testing.T) 
 	api := &APIServer{}
 	api.bindOTLPObservabilityRuntime(fixture.runtime)
 	now := time.Now().UTC()
-	sum := 256.0
 
+	sum := float64(256)
 	point := &metricspb.HistogramDataPoint{
 		TimeUnixNano: uint64(now.UnixNano()),
 		Attributes: []*commonpb.KeyValue{
@@ -368,7 +368,7 @@ func TestOTLPInboundInsightClawContextHistorySizeMapsToTokenUsage(t *testing.T) 
 		t.Fatalf("compat context-size metrics = %#v", metrics)
 	}
 	attributes := metrics[0].Attributes()
-	if attributes["gen_ai.operation.name"] != "context_history_user" || attributes["gen_ai.token.type"] != "input" {
+	if attributes["gen_ai.operation.name"] != "chat" || attributes["gen_ai.token.type"] != "input" {
 		t.Fatalf("compat context-size labels = %#v", attributes)
 	}
 }
