@@ -81,12 +81,17 @@ var defaultInsightClawConfig = map[string]interface{}{
 	"emitIoaObserveAttributes": true,
 }
 
+const defaultInsightClawGatewayAPIAddr = "127.0.0.1:18970"
+
 func defaultInsightClawEndpoint(apiAddr string) string {
-	addr := strings.TrimSpace(apiAddr)
-	if addr == "" {
-		addr = "127.0.0.1:18970"
+	trimmed := strings.TrimSpace(apiAddr)
+	if trimmed == "" {
+		trimmed = defaultInsightClawGatewayAPIAddr
 	}
-	return "http://" + addr
+	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+		return strings.TrimRight(trimmed, "/")
+	}
+	return "http://" + strings.TrimRight(trimmed, "/")
 }
 
 // openClawExtensionAvailable returns true when the embedded OpenClaw

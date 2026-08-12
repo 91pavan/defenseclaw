@@ -123,7 +123,7 @@ func TestOTLPInboundInsightClawToolCallsMapToToolActivityBucket(t *testing.T) {
 		t.Fatalf("tool compatibility bucket=%q want %q", metrics[0].CanonicalRecord().Bucket(), observability.BucketToolActivity)
 	}
 	attributes := metrics[0].Attributes()
-	if attributes["gen_ai.tool.name"] != "shell" || attributes["tool.provider"] != "terminal" {
+	if attributes["gen_ai.tool.name"] != "shell" || attributes["tool.provider"] != "" {
 		t.Fatalf("compat tool labels = %#v", attributes)
 	}
 	correlation := metrics[0].CanonicalRecord().Correlation()

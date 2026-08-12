@@ -89,7 +89,7 @@ inbound_bindings:
       target: defenseclaw.tool.provider
       value_type: string
       normalization: bounded-v1
-      sources: [defenseclaw.tool.provider, openclaw.channel]
+      sources: [defenseclaw.tool.provider]
     - id: insightclaw-connector-v1
       target: defenseclaw.connector.source
       value_type: string
