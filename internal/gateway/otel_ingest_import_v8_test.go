@@ -277,6 +277,7 @@ func TestOTLPInboundConnectorPromptPreservesDeclaredLifecycleCorrelation(t *test
 		t.Fatal("generated Codex user-prompt match missing")
 	}
 	leaf, source := inboundFixtureLeafForMatch(t, match)
+	source = "openclaw"
 	now := time.Now().UTC()
 	leaf.logRecord.TimeUnixNano = uint64(now.UnixNano())
 	leaf.logRecord.Body = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: "follow-up prompt"}}
@@ -556,6 +557,9 @@ func TestOTLPInboundPR403TopologyAndMissingData(t *testing.T) {
 		t.Fatal(err)
 	}
 	attributes := object["attributes"].(map[string]any)
+	if attributes[observability.TelemetryAttributeDefenseClawConnectorSource] != source {
+		t.Fatalf("authenticated connector source=%#v want=%q", attributes[observability.TelemetryAttributeDefenseClawConnectorSource], source)
+	}
 	for _, absent := range []string{
 		"defenseclaw.agent.root.id", "defenseclaw.agent.parent.id",
 		"defenseclaw.agent.execution.id", "defenseclaw.turn.id", "gen_ai.tool.call.id",

@@ -14,6 +14,7 @@
       }
     ]
   },
+  "description": "Canonical DefenseClaw projections of InsightClaw/OpenClaw OTLP metrics, with source-ingress and bounded correlation evidence.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -29,7 +30,7 @@
       },
       "gridPos": {"x": 0, "y": 0, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum by (tool_name) (rate(defenseclaw_tool_calls_total[$__rate_interval])) or vector(0)", "legendFormat": "{{tool_name}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_tool_name, tool_provider) ((((increase(defenseclaw_tool_calls_total[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total[$__rate_interval]) unless defenseclaw_tool_calls_total offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or on() vector(0)", "legendFormat": "{{gen_ai_tool_name}} ({{tool_provider}})", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -39,7 +40,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 8, "y": 0, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum by (tool_name) (rate(defenseclaw_tool_errors_total[$__rate_interval])) or vector(0)", "legendFormat": "{{tool_name}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_tool_name) ((((increase(defenseclaw_tool_errors_total[$__rate_interval]) or (last_over_time(defenseclaw_tool_errors_total[$__rate_interval]) * 0)) and defenseclaw_tool_errors_total offset $__rate_interval) or (last_over_time(defenseclaw_tool_errors_total[$__rate_interval]) unless defenseclaw_tool_errors_total offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or on() vector(0)", "legendFormat": "{{gen_ai_tool_name}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -49,7 +50,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 16, "y": 0, "w": 8, "h": 6},
       "targets": [
-        {"expr": "histogram_quantile(0.95, sum by (le, tool_name) (rate(defenseclaw_tool_duration_milliseconds_bucket[$__rate_interval]))) or vector(0)", "legendFormat": "{{tool_name}}", "refId": "A"}
+        {"expr": "histogram_quantile(0.95, sum by (le, gen_ai_tool_name) (rate(defenseclaw_tool_duration_milliseconds_bucket[$__rate_interval]))) or vector(0)", "legendFormat": "{{gen_ai_tool_name}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []}
     },
@@ -60,7 +61,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 6, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.read|memory_read|memory-read|memory_get|memory.retrieve\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+        {"expr": "sum((((increase(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.read|memory_read|memory-read|memory_get|memory.retrieve\"}[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.read|memory_read|memory-read|memory_get|memory.retrieve\"}[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.read|memory_read|memory-read|memory_get|memory.retrieve\"} offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.read|memory_read|memory-read|memory_get|memory.retrieve\"}[$__rate_interval]) unless defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.read|memory_read|memory-read|memory_get|memory.retrieve\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or vector(0)", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -70,7 +71,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 8, "y": 6, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.write|memory_write|memory-save|memory.upsert\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+        {"expr": "sum((((increase(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.write|memory_write|memory-save|memory.upsert\"}[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.write|memory_write|memory-save|memory.upsert\"}[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.write|memory_write|memory-save|memory.upsert\"} offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.write|memory_write|memory-save|memory.upsert\"}[$__rate_interval]) unless defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.write|memory_write|memory-save|memory.upsert\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or vector(0)", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -80,7 +81,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 16, "y": 6, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.edit|memory_edit|memory.update|memory.patch\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+        {"expr": "sum((((increase(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.edit|memory_edit|memory.update|memory.patch\"}[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.edit|memory_edit|memory.update|memory.patch\"}[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.edit|memory_edit|memory.update|memory.patch\"} offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.edit|memory_edit|memory.update|memory.patch\"}[$__rate_interval]) unless defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.edit|memory_edit|memory.update|memory.patch\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or vector(0)", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -91,7 +92,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 12, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.search|memory_search\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+        {"expr": "sum((((increase(defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_hit\"}[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_hit\"}[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_hit\"} offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_hit\"}[$__rate_interval]) unless defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_hit\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or vector(0)", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -101,7 +102,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 8, "y": 12, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum(rate(defenseclaw_tool_errors_total{tool_name=~\"memory.search|memory_search\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+        {"expr": "sum((((increase(defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_miss\"}[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_miss\"}[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_miss\"} offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_miss\"}[$__rate_interval]) unless defenseclaw_tool_calls_total{gen_ai_tool_name=\"memory_search_miss\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or vector(0)", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -111,28 +112,28 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 16, "y": 12, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\".*search.*\"}[$__rate_interval])) or vector(0)", "refId": "A"}
+        {"expr": "sum((((increase(defenseclaw_tool_calls_total{gen_ai_tool_name=~\".*search.*\"}[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\".*search.*\"}[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total{gen_ai_tool_name=~\".*search.*\"} offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\".*search.*\"}[$__rate_interval]) unless defenseclaw_tool_calls_total{gen_ai_tool_name=~\".*search.*\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or vector(0)", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
 
     {
       "type": "timeseries",
-      "title": "Session Parallelisation and Efficiency Score",
+      "title": "Agent turn p95 duration",
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 18, "w": 11, "h": 8},
       "targets": [
-        {"expr": "histogram_quantile(0.95, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket[$__rate_interval]))) or vector(0)", "legendFormat": "p95 latency", "refId": "A"}
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{gen_ai_operation_name=\"agent_turn\"}[$__rate_interval]))) or vector(0)", "legendFormat": "p95 turn latency", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
     },
     {
       "type": "timeseries",
-      "title": "Session Repetition  Score",
+      "title": "Agent turn rate by model",
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 11, "y": 18, "w": 13, "h": 8},
       "targets": [
-        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count{gen_ai_operation_name=\"agent_turn\"}[$__rate_interval])) or on() vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -143,17 +144,17 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 26, "w": 8, "h": 6},
       "targets": [
-        {"expr": "histogram_quantile(0.50, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket[$__rate_interval]))) or vector(0)", "legendFormat": "p50", "refId": "A"}
+        {"expr": "histogram_quantile(0.50, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{gen_ai_operation_name=\"context_preparation\"}[$__rate_interval]))) or vector(0)", "legendFormat": "p50", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
     },
     {
       "type": "timeseries",
-      "title": "Context source - System",
+      "title": "Context preparation by provider",
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 8, "y": 26, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum by (gen_ai_provider_name) (rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_provider_name}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_provider_name) (rate(gen_ai_client_operation_duration_seconds_count{gen_ai_operation_name=\"context_preparation\"}[$__rate_interval])) or on() vector(0)", "legendFormat": "{{gen_ai_provider_name}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -163,7 +164,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 16, "y": 26, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|prompt\"}[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_request_model) ((((increase(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|prompt\"}[$__rate_interval]) or (last_over_time(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|prompt\"}[$__rate_interval]) * 0)) and gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|prompt\"} offset $__rate_interval) or (last_over_time(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|prompt\"}[$__rate_interval]) unless gen_ai_client_token_usage_sum{gen_ai_token_type=~\"input|prompt\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
     },
@@ -174,28 +175,28 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 32, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum by (tool_name) (rate(defenseclaw_tool_calls_total[$__rate_interval])) or vector(0)", "legendFormat": "{{tool_name}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_tool_name) ((((increase(defenseclaw_tool_calls_total[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total[$__rate_interval]) unless defenseclaw_tool_calls_total offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or on() vector(0)", "legendFormat": "{{gen_ai_tool_name}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
     {
       "type": "timeseries",
-      "title": "Context source - User history",
+      "title": "Context preparation by model",
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 8, "y": 32, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count{gen_ai_operation_name=\"context_preparation\"}[$__rate_interval])) or on() vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
 
     {
       "type": "timeseries",
-      "title": "Context source - unclassified history",
+      "title": "Context preparation rate",
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 38, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum(rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "operations", "refId": "A"}
+        {"expr": "sum(rate(gen_ai_client_operation_duration_seconds_count{gen_ai_operation_name=\"context_preparation\"}[$__rate_interval])) or vector(0)", "legendFormat": "context operations", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -205,7 +206,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 8, "y": 38, "w": 8, "h": 6},
       "targets": [
-        {"expr": "sum(rate(defenseclaw_tool_calls_total{tool_name=~\"memory.*\"}[$__rate_interval])) or vector(0)", "legendFormat": "memory tools", "refId": "A"}
+        {"expr": "sum((((increase(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.*\"}[$__rate_interval]) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.*\"}[$__rate_interval]) * 0)) and defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.*\"} offset $__rate_interval) or (last_over_time(defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.*\"}[$__rate_interval]) unless defenseclaw_tool_calls_total{gen_ai_tool_name=~\"memory.*\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or vector(0)", "legendFormat": "memory tools", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -216,7 +217,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 44, "w": 6, "h": 8},
       "targets": [
-        {"expr": "histogram_quantile(0.95, sum by (le) (rate(defenseclaw_tool_duration_milliseconds_bucket{tool_name=~\"session.spawn|sessions_spawn\"}[$__rate_interval]))) or vector(0)", "legendFormat": "p95", "refId": "A"}
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(defenseclaw_tool_duration_milliseconds_bucket{gen_ai_tool_name=~\"session.spawn|sessions_spawn\"}[$__rate_interval]))) or vector(0)", "legendFormat": "p95", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ms"}, "overrides": []}
     },
@@ -226,7 +227,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 6, "y": 44, "w": 6, "h": 8},
       "targets": [
-        {"expr": "sum(rate(defenseclaw_tool_errors_total{tool_name=~\"memory.*\"}[$__rate_interval])) or vector(0)", "legendFormat": "memory errors", "refId": "A"}
+        {"expr": "sum((((increase(defenseclaw_tool_errors_total{gen_ai_tool_name=~\"memory.*\"}[$__rate_interval]) or (last_over_time(defenseclaw_tool_errors_total{gen_ai_tool_name=~\"memory.*\"}[$__rate_interval]) * 0)) and defenseclaw_tool_errors_total{gen_ai_tool_name=~\"memory.*\"} offset $__rate_interval) or (last_over_time(defenseclaw_tool_errors_total{gen_ai_tool_name=~\"memory.*\"}[$__rate_interval]) unless defenseclaw_tool_errors_total{gen_ai_tool_name=~\"memory.*\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)) or vector(0)", "legendFormat": "memory errors", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -236,7 +237,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 12, "y": 44, "w": 6, "h": 8},
       "targets": [
-        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_request_model) ((((increase(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval]) or (last_over_time(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval]) * 0)) and gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"} offset $__rate_interval) or (last_over_time(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval]) unless gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
     },
@@ -247,17 +248,17 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 52, "w": 9, "h": 8},
       "targets": [
-        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_operation_duration_seconds_count{gen_ai_operation_name=\"agent_turn\"}[$__rate_interval])) or on() vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
     {
       "type": "timeseries",
-      "title": "Agent output novelty",
+      "title": "Token throughput by model",
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 9, "y": 52, "w": 9, "h": 8},
       "targets": [
-        {"expr": "sum by (gen_ai_request_model) (rate(gen_ai_client_token_usage_sum[$__rate_interval])) or vector(0)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
+        {"expr": "sum by (gen_ai_request_model) ((((increase(gen_ai_client_token_usage_sum[$__rate_interval]) or (last_over_time(gen_ai_client_token_usage_sum[$__rate_interval]) * 0)) and gen_ai_client_token_usage_sum offset $__rate_interval) or (last_over_time(gen_ai_client_token_usage_sum[$__rate_interval]) unless gen_ai_client_token_usage_sum offset $__rate_interval)) / ($__rate_interval_ms / 1000)", "legendFormat": "{{gen_ai_request_model}}", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
     },
@@ -268,7 +269,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 0, "y": 60, "w": 8, "h": 8},
       "targets": [
-        {"expr": "avg_over_time((sum(rate(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval])) or vector(0))[15m:])", "refId": "A"}
+        {"expr": "avg_over_time((sum((((increase(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval]) or (last_over_time(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval]) * 0)) and gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"} offset $__rate_interval) or (last_over_time(gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"}[$__rate_interval]) unless gen_ai_client_token_usage_sum{gen_ai_token_type=~\"output|completion\"} offset $__rate_interval)) / ($__rate_interval_ms / 1000))[15m:])", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}
     },
@@ -278,7 +279,7 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 8, "y": 60, "w": 7, "h": 8},
       "targets": [
-        {"expr": "avg_over_time((sum(rate(gen_ai_client_operation_duration_seconds_count[$__rate_interval])) or vector(0))[15m:])", "refId": "A"}
+        {"expr": "avg_over_time((sum(rate(gen_ai_client_operation_duration_seconds_count{gen_ai_operation_name=\"agent_turn\"}[$__rate_interval])) or vector(0))[15m:])", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
     },
@@ -288,9 +289,100 @@
       "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
       "gridPos": {"x": 15, "y": 60, "w": 7, "h": 8},
       "targets": [
-        {"expr": "avg_over_time((histogram_quantile(0.95, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket[$__rate_interval]))) or vector(0))[15m:])", "refId": "A"}
+        {"expr": "avg_over_time((histogram_quantile(0.95, sum by (le) (rate(gen_ai_client_operation_duration_seconds_bucket{gen_ai_operation_name=\"agent_turn\"}[$__rate_interval]))) or vector(0))[15m:])", "refId": "A"}
       ],
       "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}
+    },
+    {
+      "type": "row",
+      "title": "Correlation evidence",
+      "gridPos": {"x": 0, "y": 68, "w": 24, "h": 1},
+      "collapsed": false
+    },
+    {
+      "type": "stat",
+      "title": "OpenClaw OTLP records / min",
+      "description": "Inbound records authenticated as source=openclaw. Compare this with the canonical series table to verify source-to-family routing.",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 0, "y": 69, "w": 6, "h": 7},
+      "targets": [
+        {"expr": "sum(rate(defenseclaw_otel_ingest_records_total{source=\"openclaw\"}[5m])) * 60 or vector(0)", "instant": true, "refId": "A"}
+      ],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {"defaults": {"unit": "ops"}, "overrides": []}
+    },
+    {
+      "type": "table",
+      "title": "Canonical OpenClaw series and bounded correlation labels",
+      "description": "Current mapped token, tool, duration, and reported-cost series. High-cardinality session, agent, request, and turn IDs are retained in canonical records when supplied but intentionally excluded from Prometheus labels.",
+      "datasource": {"type": "prometheus", "uid": "defenseclaw-prometheus"},
+      "gridPos": {"x": 6, "y": 69, "w": 18, "h": 7},
+      "targets": [
+        {"expr": "defenseclaw_tool_calls_total", "format": "table", "instant": true, "refId": "tools"},
+        {"expr": "gen_ai_client_operation_duration_seconds_count", "format": "table", "instant": true, "refId": "duration"},
+        {"expr": "defenseclaw_agent_reported_cost_USD", "format": "table", "instant": true, "refId": "cost"}
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Traces",
+      "gridPos": {"x": 0, "y": 76, "w": 24, "h": 1},
+      "collapsed": false
+    },
+    {
+      "type": "table",
+      "title": "InsightClaw plugin GenAI spans",
+      "description": "Spans authenticated through the OpenClaw OTLP route, emitted by the InsightClaw plugin, accepted by the standard GenAI trace contract, and canonicalized to service.name=defenseclaw. Click a trace ID to inspect its span waterfall in Grafana Explore.",
+      "datasource": {"type": "tempo", "uid": "defenseclaw-tempo"},
+      "gridPos": {"x": 0, "y": 77, "w": 16, "h": 12},
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{ resource.service.name = \"defenseclaw\" && span.defenseclaw.connector.source = \"openclaw\" && span.gen_ai.operation.name =~ \"invoke_agent|chat|embeddings|execute_tool|retrieval|invoke_workflow\" }",
+          "limit": 50,
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "left"},
+          "links": [
+            {
+              "title": "Open trace",
+              "url": "/explore?left=%7B%22datasource%22:%22defenseclaw-tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22datasource%22:%7B%22type%22:%22tempo%22,%22uid%22:%22defenseclaw-tempo%22%7D,%22queryType%22:%22traceql%22,%22query%22:%22${__data.fields.traceID}%22%7D%5D,%22range%22:%7B%22from%22:%22now-6h%22,%22to%22:%22now%22%7D%7D",
+              "targetBlank": true
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {"showHeader": true, "cellHeight": "sm"}
+    },
+    {
+      "type": "logs",
+      "title": "Rejected OpenClaw trace records",
+      "description": "Trace leaves received from OpenClaw but rejected by canonical classification. unsupported_identity means the span did not satisfy a registered trace family contract.",
+      "datasource": {"type": "loki", "uid": "defenseclaw-loki"},
+      "gridPos": {"x": 16, "y": 77, "w": 8, "h": 12},
+      "targets": [
+        {
+          "expr": "{service_name=\"defenseclaw\"} | json | __error__=\"\" | connector=\"openclaw\" | event_name=\"telemetry.records.dropped\" | body_defenseclaw_telemetry_signal=\"traces\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
     }
   ],
   "refresh": "15s",
@@ -302,7 +394,7 @@
       {
         "name": "groupby",
         "type": "custom",
-        "query": "session.id,gen_ai.agent.id,gen_ai_request_model,tool_name",
+        "query": "gen_ai_request_model,gen_ai_provider_name,gen_ai_tool_name,tool_provider",
         "current": {
           "text": "gen_ai_request_model",
           "value": "gen_ai_request_model"
@@ -323,6 +415,6 @@
   "timezone": "browser",
   "title": "OpenClaw Metrics dashboard",
   "uid": "defenseclaw-insightclaw-proof",
-  "version": 2,
+  "version": 7,
   "weekStart": ""
 }

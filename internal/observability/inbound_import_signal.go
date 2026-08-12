@@ -351,6 +351,22 @@ func (builder *InboundImportBuilder) BuildTrace(
 	if err != nil {
 		return Record{}, err
 	}
+	for _, descriptor := range contract.fields {
+		if descriptor.key != TelemetryAttributeDefenseClawConnectorSource {
+			continue
+		}
+		if current, present := provided[descriptor.key]; present {
+			if current != input.Import.AuthenticatedSource {
+				return Record{}, familyBuildFailure(FamilyBuildForbiddenField)
+			}
+			break
+		}
+		provided[descriptor.key] = input.Import.AuthenticatedSource
+		values = append(values, familyFieldValue{
+			key: descriptor.key, value: input.Import.AuthenticatedSource, present: true,
+		})
+		break
+	}
 	if err := validateInboundTraceOutcome(match.outcomeRule, input.Outcome, input.Status, provided); err != nil {
 		return Record{}, err
 	}
